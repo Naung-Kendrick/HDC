@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ── Architect Core Palette ───────────────────────────── */
+  --n-bg:          #FFFFFF;
+  --n-sidebar:     #FAFAFA;
+  --n-text:        #1A1A1A;
+  --n-text-2:      #737373;
+  --n-border:      #E5E7EB;
+  --n-hover:       #F3F4F6;
+  --n-active:      #E5E7EB;
+  --n-accent:      #000000;
+  --n-accent-bg:   #F3F4F6;
+
+  /* ── Aliases ── */
+  --primary-color:    var(--n-accent);
+  --secondary-color:  var(--n-text-2);
+  --tertiary-color:   var(--n-text);
+  --neutral-color:    var(--n-text-2);
+  --bg-color:         var(--n-bg);
+  --card-bg:          var(--n-bg);
+  --text-primary:     var(--n-text);
+  --text-secondary:   var(--n-text-2);
+  --color-border:     var(--n-border);
+
+  /* ── Typography ───────────────────────────────────────── */
+  --font-headline: 'Inter', 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', system-ui, sans-serif;
+  --font-body:     'Inter', 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', system-ui, sans-serif;
+  --font-label:    'Inter', 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', system-ui, sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+
+  /* ── Geometry ─────────────────────────────────────────── */
+  --radius:    0px;
+  --radius-sm: 0px;
+  --shadow:    none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--n-text);
+  background-color: var(--n-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--n-text);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--n-bg);
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+}
+
+/* ── Buttons ──────────────────────────────────────────── */
+button {
+  border-radius: 0px;
+  border: 1px solid var(--n-text);
+  padding: 0.5em 1em;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.btn-primary {
+  background-color: var(--n-text);
+  color: #FFFFFF;
+}
+.btn-primary:hover {
+  background-color: #FFFFFF;
+  color: var(--n-text);
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--n-text);
+  border-color: var(--n-border);
+}
+.btn-secondary:hover { background-color: var(--n-hover); }
+
+/* ── Inputs ───────────────────────────────────────────── */
+input, select, textarea {
+  border-radius: 0px;
+  border: 1px solid var(--n-border);
+  padding: 0.5em 0.75em;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--n-text);
+  background-color: var(--n-bg);
+  transition: border-color 0.1s;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--n-text);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--n-text-2);
+}
+
+/* ── Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E5E7EB; }
+::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Myanmar text rendering */
+.my-myanmar {
+  font-family: 'Noto Sans Myanmar', 'Pyidaungsu', 'Myanmar Text', sans-serif;
+}
