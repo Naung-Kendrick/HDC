@@ -8,15 +8,12 @@ function App() {
       <header className="bg-white border-b border-[#E5E7EB]">
         <div className="w-full mx-auto px-4 sm:px-5 lg:px-8 xl:px-12 py-3 sm:py-4 flex items-center justify-between max-w-[1600px]">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 border border-[#E5E7EB] flex items-center justify-center flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-[22px] sm:h-[22px]" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="1.5">
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
+            <div className="h-8 sm:h-10 flex-shrink-0">
+              <img src="/logo.svg" alt="TPS Logo" className="h-full w-auto" />
             </div>
-            <div>
+            <div className="border-l border-[#E5E7EB] pl-2 sm:pl-3">
               <div className="text-[13px] sm:text-[15px] font-bold text-[#1A1A1A] tracking-wide uppercase">HDC</div>
-              <div className="text-[9px] sm:text-[10px] text-[#737373]">Ta'ang Population System</div>
+              <div className="text-[9px] sm:text-[10px] text-[#737373]">Household Database Checker</div>
             </div>
           </div>
           <div className="text-[9px] sm:text-[10px] text-[#737373] uppercase tracking-wider">v1.0</div>
