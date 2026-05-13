@@ -6,10 +6,17 @@ function App() {
     <div className="min-h-screen bg-white flex flex-col" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Top Header - Full Width */}
       <header className="bg-white border-b border-[#E5E7EB]">
-        <div className="w-full mx-auto px-4 sm:px-5 lg:px-8 xl:px-12 py-3 sm:py-4 flex items-center justify-between max-w-[1600px]">
-          <div>
-            <div className="text-[13px] sm:text-[15px] font-bold text-[#1A1A1A] tracking-wide uppercase">HDC</div>
-            <div className="text-[9px] sm:text-[10px] text-[#737373]">Feature In The Ta'ang Population System</div>
+        <div className="w-full mx-auto px-4 sm:px-5 lg:px-8 xl:px-12 py-2 sm:py-3 flex items-center justify-between max-w-[1600px]">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <img
+              src="/web_logo.png"
+              alt="TPS Logo"
+              className="h-8 sm:h-10 w-auto object-contain flex-shrink-0"
+            />
+            <div className="border-l border-[#E5E7EB] pl-2 sm:pl-3">
+              <div className="text-[13px] sm:text-[15px] font-bold text-[#1A1A1A] tracking-wide uppercase leading-tight">HDC</div>
+              <div className="text-[9px] sm:text-[10px] text-[#737373] leading-tight">Feature In The Ta'ang Population System</div>
+            </div>
           </div>
           <div className="text-[9px] sm:text-[10px] text-[#737373] uppercase tracking-wider">v1.0</div>
         </div>
