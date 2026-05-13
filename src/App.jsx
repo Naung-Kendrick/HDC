@@ -7,13 +7,13 @@ function App() {
       {/* Top Header - Full Width */}
       <header className="bg-white border-b border-[#E5E7EB]">
         <div className="w-full mx-auto px-4 sm:px-5 lg:px-8 xl:px-12 py-2 sm:py-3 flex items-center justify-between max-w-[1600px]">
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <img
               src="/web_logo.png"
-              alt="TPS Logo"
-              className="h-8 sm:h-10 w-auto object-contain flex-shrink-0"
+              alt="TLFUG Immigration Logo"
+              className="h-9 sm:h-11 w-9 sm:w-11 object-contain flex-shrink-0"
             />
-            <div className="border-l border-[#E5E7EB] pl-2 sm:pl-3">
+            <div className="border-l border-[#E5E7EB] pl-3 sm:pl-4">
               <div className="text-[13px] sm:text-[15px] font-bold text-[#1A1A1A] tracking-wide uppercase leading-tight">HDC</div>
               <div className="text-[9px] sm:text-[10px] text-[#737373] leading-tight">Feature In The Ta'ang Population System</div>
             </div>
@@ -186,14 +186,17 @@ function App() {
       {/* Footer - Full Width */}
       <footer className="border-t border-[#E5E7EB] mt-auto">
         <div className="w-full mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 max-w-[1600px]">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 py-3 sm:py-4">
             <div>
               <p className="text-[10px] sm:text-[11px] text-[#737373]">Household Database Checker — Data validation tool</p>
               <p className="text-[10px] sm:text-[11px] text-[#737373]">© 2026 Ta'ang Population System</p>
             </div>
-            <div className="text-right">
-              <p className="text-[9px] sm:text-[10px] text-[#ABABAB] uppercase tracking-wider">Designed & Developed by</p>
-              <p className="text-[10px] sm:text-[11px] text-[#737373] font-medium">Mai San Hlu & Mai Nay Lin</p>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:block w-px h-6 bg-[#E5E7EB]"></div>
+              <div className="text-right sm:text-right">
+                <p className="text-[8px] sm:text-[9px] text-[#ABABAB] uppercase tracking-widest font-medium">Designed & Developed by</p>
+                <p className="text-[11px] sm:text-[12px] text-[#1A1A1A] font-semibold tracking-tight">Mai San Hlu <span className="text-[#ABABAB] font-normal">&</span> Mai Nay Lin</p>
+              </div>
             </div>
           </div>
         </div>
