@@ -186,17 +186,10 @@ function App() {
       {/* Footer - Full Width */}
       <footer className="border-t border-[#E5E7EB] mt-auto">
         <div className="w-full mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 max-w-[1600px]">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 py-3 sm:py-4">
-            <div>
-              <p className="text-[10px] sm:text-[11px] text-[#737373]">Household Database Checker — Data validation tool</p>
-              <p className="text-[10px] sm:text-[11px] text-[#737373]">© 2026 Ta'ang Population System</p>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden sm:block w-px h-6 bg-[#E5E7EB]"></div>
-              <div className="text-right sm:text-right">
-                <p className="text-[8px] sm:text-[9px] text-[#ABABAB] uppercase tracking-widest font-medium">Designed & Developed by</p>
-                <p className="text-[11px] sm:text-[12px] text-[#1A1A1A] font-semibold tracking-tight">Mai San Hlu <span className="text-[#ABABAB] font-normal">&</span> Mai Nay Lin</p>
-              </div>
+          <div className="flex justify-end items-center py-3 sm:py-4">
+            <div className="text-right">
+              <p className="text-[8px] sm:text-[9px] text-[#ABABAB] uppercase tracking-widest font-medium">Designed & Developed by</p>
+              <p className="text-[11px] sm:text-[12px] text-[#1A1A1A] font-semibold tracking-tight">Mai San Hlu <span className="text-[#ABABAB] font-normal">&</span> Mai Nay Lin</p>
             </div>
           </div>
         </div>
