@@ -87,7 +87,7 @@ function App() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
-                    <span>Use YYYY-MM-DD date format</span>
+                    <span>Use DD-MM-YYYY date format</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
@@ -179,9 +179,15 @@ function App() {
       {/* Footer - Full Width */}
       <footer className="border-t border-[#E5E7EB] mt-auto">
         <div className="w-full mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 max-w-[1600px]">
-          <div className="flex flex-col sm:flex-row justify-between gap-2 py-3 sm:py-4">
-            <p className="text-[10px] sm:text-[11px] text-[#737373]">Household Database Checker — Data validation tool</p>
-            <p className="text-[10px] sm:text-[11px] text-[#737373]">© 2026 Ta'ang Population System </p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 py-3 sm:py-4">
+            <div>
+              <p className="text-[10px] sm:text-[11px] text-[#737373]">Household Database Checker — Data validation tool</p>
+              <p className="text-[10px] sm:text-[11px] text-[#737373]">© 2026 Ta'ang Population System</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[9px] sm:text-[10px] text-[#ABABAB] uppercase tracking-wider">Designed & Developed by</p>
+              <p className="text-[10px] sm:text-[11px] text-[#737373] font-medium">Mai San Hlu & Mai Nay Lin</p>
+            </div>
           </div>
         </div>
       </footer>
