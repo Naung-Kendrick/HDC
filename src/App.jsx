@@ -82,23 +82,23 @@ function App() {
                 <ul className="space-y-1 text-[10px] sm:text-[11px] text-[#1A1A1A]">
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
-                    <span>Use Unicode Myanmar font</span>
+                    <span>Use Unicode Myanmar font / ယူနီကုဒ် (Unicode) သုံးပါ</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
-                    <span>Fill all required fields</span>
+                    <span>Fill all required fields / လိုအပ်သောအချက်အလက်များ အပြည့်အစုံဖြည့်ပါ</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
-                    <span>Check spelling before upload</span>
+                    <span>Must include 'ရပ်ကွက်', 'ရွာ', or 'အုပ်စု' / ရပ်ကွက်၊ ရွာ သို့မဟုတ် အုပ်စု စာသားပါဝင်ရမည်</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
-                    <span>Use DD-MM-YYYY date format</span>
+                    <span>≥1 Ta'ang ID & NRC per household / အိမ်ထောင်စုတိုင်းတွင် အနည်းဆုံး Ta'ang ID & မှတ်ပုံတင်တစ်ခု ပါရမည်</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 font-bold">✓</span>
-                    <span>Verify household numbers</span>
+                    <span>Use DD-MM-YYYY format / နေ့/လ/ခုနှစ် ပုံစံဖြင့်ရေးပါ</span>
                   </li>
                 </ul>
               </div>
@@ -118,23 +118,23 @@ function App() {
                 <ul className="space-y-1 text-[10px] sm:text-[11px] text-[#1A1A1A]">
                   <li className="flex items-start gap-2">
                     <span className="text-red-600 font-bold">✗</span>
-                    <span>Leave required fields empty</span>
+                    <span>Leave required fields empty / လိုအပ်သော အချက်အလက်များ ကွက်လပ်မထားပါနှင့်</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-red-600 font-bold">✗</span>
-                    <span>Mix Zawgyi & Unicode fonts</span>
+                    <span>Mix Zawgyi & Unicode / ဇော်ဂျီနှင့် ယူနီကုဒ် ရောမသုံးပါနှင့်</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-red-600 font-bold">✗</span>
-                    <span>Use special characters</span>
+                    <span>Upload families without IDs / ID မပါသော မိသားစုများကို မတင်ပါနှင့်</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-red-600 font-bold">✗</span>
-                    <span>Merge cells in Excel</span>
+                    <span>Merge cells in Excel / Excel တွင် Cell များကို Merge မလုပ်ပါနှင့်</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-red-600 font-bold">✗</span>
-                    <span>Add duplicate entries</span>
+                    <span>Add duplicate entries / ထပ်နေသော အချက်အလက်များ မထည့်ပါနှင့်</span>
                   </li>
                 </ul>
               </div>
