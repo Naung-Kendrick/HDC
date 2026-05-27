@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { zg2uni } from 'rabbit-node';
@@ -848,48 +849,92 @@ const ExcelChecker = () => {
 
             {expandedSections.summary && (
               <div className="p-3 sm:p-4 space-y-3">
-                {/* Overall Status - TPS 1 Style */}
-                <div className={`p-4 flex items-center gap-3 border ${
-                  checkResults.isValid
-                    ? checkResults.warnings.length > 0
-                      ? 'bg-orange-50 border-orange-200'
-                      : 'bg-green-50 border-green-200'
-                    : 'bg-red-50 border-red-200'
-                }`} style={{ borderRadius: '0px' }}>
-                  {checkResults.isValid ? (
-                    checkResults.warnings.length > 0 ? (
+                {/* Overall Status */}
+                {checkResults.isValid && checkResults.errors.length === 0 && checkResults.warnings.length === 0 ? (
+                  /* ── ALL CLEAR: Theme-matched success with beam animation ── */
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className="relative overflow-hidden border border-[#16A34A] bg-[#F0FDF4]"
+                    style={{ borderRadius: '0px' }}
+                  >
+                    {/* Beam sweep — thin horizontal light line, green matching theme */}
+                    <motion.div
+                      initial={{ scaleX: 0, opacity: 0.8 }}
+                      animate={{ scaleX: 1, opacity: 0 }}
+                      transition={{ duration: 0.9, ease: 'easeOut', delay: 0.15 }}
+                      style={{ transformOrigin: 'left center' }}
+                      className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#16A34A] via-[#4ADE80] to-transparent"
+                    />
+                    {/* Left accent bar */}
+                    <div className="flex">
+                      <motion.div
+                        initial={{ scaleY: 0 }}
+                        animate={{ scaleY: 1 }}
+                        transition={{ duration: 0.35, ease: 'easeOut' }}
+                        style={{ transformOrigin: 'top center' }}
+                        className="w-1 flex-shrink-0 bg-[#16A34A]"
+                      />
+                      <div className="flex items-start gap-3 p-4">
+                        <motion.div
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.35, delay: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
+                        >
+                          <CheckCircle2 size={20} className="text-[#16A34A] flex-shrink-0 mt-0.5" />
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: -6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.35, delay: 0.25, ease: 'easeOut' }}
+                          className="flex-1 min-w-0"
+                        >
+                          <p className="text-[14px] font-semibold text-[#14532D] leading-tight tracking-tight">All Checks Passed</p>
+                          <p className="text-[12px] text-[#166534] mt-0.5">File is clean and ready for database upload</p>
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3, delay: 0.45 }}
+                            className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[#BBF7D0]"
+                          >
+                            <span className="text-[12px] text-[#166534] font-medium tabular-nums">{checkResults.totalRows} rows verified</span>
+                            <span className="text-[#BBF7D0] select-none">|</span>
+                            <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 errors</span>
+                            <span className="text-[#BBF7D0] select-none">|</span>
+                            <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 warnings</span>
+                          </motion.div>
+                        </motion.div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className={`p-4 flex items-center gap-3 border ${
+                    checkResults.isValid
+                      ? checkResults.warnings.length > 0
+                        ? 'bg-orange-50 border-orange-200'
+                        : 'bg-green-50 border-green-200'
+                      : 'bg-red-50 border-red-200'
+                  }`} style={{ borderRadius: '0px' }}>
+                    {checkResults.isValid ? (
                       <>
                         <AlertTriangle size={20} className="text-orange-600" />
                         <div>
                           <p className="font-semibold text-orange-800 text-[13px]">Ready with Warnings</p>
-                          <p className="text-[12px] text-orange-700">
-                            File can be converted but review warnings first
-                          </p>
+                          <p className="text-[12px] text-orange-700">File can be converted but review warnings first</p>
                         </div>
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 size={20} className="text-green-600" />
+                        <AlertCircle size={20} className="text-red-600" />
                         <div>
-                          <p className="font-semibold text-green-800 text-[13px]">All Checks Passed</p>
-                          <p className="text-[12px] text-green-700">
-                            File is ready for database upload
-                          </p>
+                          <p className="font-semibold text-red-800 text-[13px]">Validation Failed</p>
+                          <p className="text-[12px] text-red-700">Fix errors in Excel before converting</p>
                         </div>
                       </>
-                    )
-                  ) : (
-                    <>
-                      <AlertCircle size={20} className="text-red-600" />
-                      <div>
-                        <p className="font-semibold text-red-800 text-[13px]">Validation Failed</p>
-                        <p className="text-[12px] text-red-700">
-                          Fix errors in Excel before converting
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Checklist Items - TPS 1 Style - Responsive */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

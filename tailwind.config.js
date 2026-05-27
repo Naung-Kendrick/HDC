@@ -23,7 +23,22 @@ export default {
       },
       borderRadius: {
         'none': '0px',
-      }
+      },
+      keyframes: {
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        checkDraw: {
+          '0%': { opacity: '0', transform: 'scale(0.7)' },
+          '60%': { transform: 'scale(1.08)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+      },
+      animation: {
+        'fade-in-up': 'fadeInUp 0.35s ease-out both',
+        'check-draw': 'checkDraw 0.4s ease-out both',
+      },
     },
   },
   plugins: [],
