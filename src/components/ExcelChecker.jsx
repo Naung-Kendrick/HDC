@@ -520,20 +520,23 @@ const ExcelChecker = () => {
         address: ensureUnicode(`${cell('house_no')}, ${wardValue}, ${currentTownship}, ${currentDistrict}`),
       };
 
-      // Skip completely empty rows
-      const isEmpty = !parsedRow.name && !parsedRow.household_no && !parsedRow.gender;
-      if (isEmpty) return;
+      // Skip completely empty rows (mirrors CsvUploader activeRows filter)
+      const hasAnyValue = Object.values(rowData).some(val => val !== undefined && val !== null && String(val).trim() !== '');
+      if (!hasAnyValue) return;
 
       processedCount++;
       const rowNum = index + 2;
 
-      // ── Required field checks ──
+      // ── Required field checks (matches CsvUploader processRowsLikeCsv) ──
       const missingFields = [];
-      if (!parsedRow.ward_village_group) missingFields.push('Ward/Village/Group');
-      if (!parsedRow.township) missingFields.push('Township');
-      if (!parsedRow.district) missingFields.push('District');
-      if (!parsedRow.gender) missingFields.push('Gender');
-      if (!parsedRow.household_relationship) missingFields.push('Household Relationship');
+      if (!parsedRow.name || parsedRow.name.trim() === '') missingFields.push('Name');
+      if (!parsedRow.household_no || parsedRow.household_no.trim() === '' || parsedRow.household_no === 'UNKNOWN-1') missingFields.push('Household No.');
+      if (!parsedRow.date_of_birth || parsedRow.date_of_birth.trim() === '') missingFields.push('Date of Birth');
+      if (!parsedRow.ward_village_group || parsedRow.ward_village_group.trim() === '') missingFields.push('Ward/Village/Group');
+      if (!parsedRow.township || parsedRow.township.trim() === '') missingFields.push('Township');
+      if (!parsedRow.district || parsedRow.district.trim() === '') missingFields.push('District');
+      if (!parsedRow.gender || parsedRow.gender.trim() === '') missingFields.push('Gender');
+      if (!parsedRow.household_relationship || parsedRow.household_relationship.trim() === '') missingFields.push('Household Relationship');
 
       const spellingIssues = [];
 
