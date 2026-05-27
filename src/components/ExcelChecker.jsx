@@ -372,6 +372,52 @@ const validateWardVillageGroup = (value) => {
   return null;
 };
 
+// Get types array from comma-separated ward_village_group
+const getWardVillageGroupTypes = (value) => {
+  if (!value || typeof value !== 'string') return ['unknown'];
+  const parts = value.split(/[,၊]/).map(p => p.trim()).filter(p => p !== '');
+  if (parts.length === 0) return ['unknown'];
+  const types = parts.map(part => detectWardVillageGroupType(autoCorrectWardVillageGroup(part)));
+  return [...new Set(types.filter(t => t !== 'unknown'))];
+};
+
+// Household-level ID requirements — mirrors CsvUploader exactly
+const validateHouseholdIDRequirements = (data) => {
+  const errors = [];
+  const households = data.reduce((acc, row) => {
+    const hn = row.household_no || 'UNKNOWN';
+    if (!acc[hn]) acc[hn] = [];
+    acc[hn].push(row);
+    return acc;
+  }, {});
+  Object.entries(households).forEach(([householdNo, members]) => {
+    const hasTaangLandID = members.some(m => m.taang_land_id_no && m.taang_land_id_no.trim() !== '');
+    const previousIDCount = members.filter(m => m.previous_id_no && m.previous_id_no.trim() !== '').length;
+    if (!hasTaangLandID)
+      errors.push({ householdNo, issue: "No Ta'ang Land ID", detail: "At least one family member must have a Ta'ang Land ID No.", rowNumbers: members.map((_, i) => i + 2).slice(0, 3) });
+    if (previousIDCount < 1)
+      errors.push({ householdNo, issue: 'No Previous ID', detail: 'At least one family member must have a Previous ID No. (NRC).', rowNumbers: members.map((_, i) => i + 2).slice(0, 3) });
+  });
+  return errors;
+};
+
+// ============ FIELD DEFINITIONS ============
+
+const REQUIRED_FIELDS = [
+  { key: 'ward_village_group', label: 'Ward/Village/Group', required: true },
+  { key: 'township', label: 'Township', required: true },
+  { key: 'district', label: 'District', required: true },
+  { key: 'gender', label: 'Gender', required: true },
+  { key: 'household_relationship', label: 'Household Relationship', required: true },
+  { key: 'name', label: 'Name', required: false },
+  { key: 'fathers_name', label: "Father's Name", required: false },
+  { key: 'mothers_name', label: "Mother's Name", required: false },
+  { key: 'occupation', label: 'Occupation', required: false },
+  { key: 'nationality', label: 'Nationality', required: false },
+  { key: 'religious', label: 'Religious', required: false },
+  { key: 'resident_status', label: 'Resident Status', required: false },
+];
+
 // ============ EXCEL HEADER MAPPING ============
 
 const ExcelHeaderMap = {
@@ -428,6 +474,23 @@ const ExcelChecker = () => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  // Crop Excel sheet range to actual populated cells only (prevents freeze on large empty files)
+  const cropSheetRange = (worksheet) => {
+    if (!worksheet || !worksheet['!ref']) return;
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    let maxRow = range.s.r;
+    for (const key of Object.keys(worksheet)) {
+      if (key.startsWith('!')) continue;
+      const cell = worksheet[key];
+      if (cell && cell.v !== undefined && cell.v !== null && String(cell.v).trim() !== '') {
+        const coord = XLSX.utils.decode_cell(key);
+        if (coord.r > maxRow) maxRow = coord.r;
+      }
+    }
+    range.e.r = maxRow;
+    worksheet['!ref'] = XLSX.utils.encode_range(range);
+  };
+
   // Convert Excel file to array of arrays (CSV-like)
   const excelToJson = (file) => {
     return new Promise((resolve, reject) => {
@@ -437,6 +500,7 @@ const ExcelChecker = () => {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellText: true, cellDates: true });
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          cropSheetRange(firstSheet);
           const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
           resolve(jsonData);
         } catch (err) {
@@ -455,7 +519,13 @@ const ExcelChecker = () => {
     }
 
     const headers = rawData[0].map(h => String(h).trim());
-    const rows = rawData.slice(1);
+    const rawRows = rawData.slice(1);
+
+    // Filter out completely empty trailing rows (matches TPS ExcelChecker)
+    const rows = rawRows.filter(row => {
+      if (!row) return false;
+      return row.some(cell => cell !== undefined && cell !== null && String(cell).trim() !== '');
+    });
 
     let currentHouseholdNo = '';
     let currentWard = '';
@@ -476,45 +546,45 @@ const ExcelChecker = () => {
         }
       });
 
-      // ── Forward Fill with normalization (mirrors CsvUploader pipeline) ──
-      const rawHn       = normalizeWhitespace(rowData.household_no);
-      const rawWard     = normalizeWhitespace(rowData.ward_village_group);
-      const rawTownship = normalizeWhitespace(rowData.township);
-      const rawDistrict = normalizeWhitespace(rowData.district);
+      // ── Forward Fill with auto-correct (mirrors TPS ExcelChecker exactly) ──
+      if (rowData.household_no && rowData.household_no !== '') {
+        currentHouseholdNo = formatHouseholdNo(ensureUnicode(rowData.household_no));
+      } else if (index === 0 && !currentHouseholdNo) {
+        currentHouseholdNo = 'UNKNOWN-1';
+      }
+      if (rowData.ward_village_group && rowData.ward_village_group !== '') {
+        currentWard = autoCorrectWardVillageGroup(ensureUnicode(rowData.ward_village_group));
+      }
+      if (rowData.township && rowData.township !== '') {
+        currentTownship = autoCorrectTownship(ensureUnicode(rowData.township));
+      }
+      if (rowData.district && rowData.district !== '') {
+        currentDistrict = autoCorrectDistrict(ensureUnicode(rowData.district));
+      }
 
-      if (rawHn !== '') currentHouseholdNo = formatHouseholdNo(ensureUnicode(rawHn));
-      else if (index === 0 && rawHn === '') currentHouseholdNo = 'UNKNOWN-1';
-
-      if (rawWard !== '')     currentWard     = rawWard;
-      if (rawTownship !== '') currentTownship = autoCorrectTownship(ensureUnicode(rawTownship));
-      if (rawDistrict !== '') currentDistrict = autoCorrectDistrict(ensureUnicode(rawDistrict));
-
-      const cell = (key) => normalizeWhitespace(rowData[key] || '');
-
-      // Ward: normalize comma list + auto-correct each segment
-      let wardValue = normalizeCommaList(ensureUnicode(currentWard));
-      wardValue = wardValue.split(', ').map(seg => autoCorrectWardVillageGroup(seg)).join(', ');
+      const wardTypes = getWardVillageGroupTypes(currentWard);
 
       const parsedRow = {
         household_no: currentHouseholdNo,
-        name: ensureUnicode(cell('name')),
-        date_of_birth: normalizeDateOfBirth(cell('date_of_birth')),
-        gender: ensureUnicode(cell('gender')),
-        fathers_name: ensureUnicode(cell('fathers_name')),
-        mothers_name: ensureUnicode(cell('mothers_name')),
-        household_relationship: ensureUnicode(cell('household_relationship')),
-        occupation: ensureUnicode(cell('occupation')),
-        previous_id_no: normalizePreviousId(ensureUnicode(cell('previous_id_no'))),
-        taang_land_id_no: normalizeTaangLandId(cell('taang_land_id_no')),
-        nationality: ensureUnicode(cell('nationality')),
-        resident_status: ensureUnicode(cell('resident_status')),
-        religious: ensureUnicode(cell('religious')),
-        house_no: ensureUnicode(cell('house_no')),
-        ward_village_group: wardValue,
+        name: ensureUnicode(rowData.name || ''),
+        date_of_birth: normalizeDateOfBirth(rowData.date_of_birth || ''),
+        gender: ensureUnicode(rowData.gender || ''),
+        fathers_name: ensureUnicode(rowData.fathers_name || ''),
+        mothers_name: ensureUnicode(rowData.mothers_name || ''),
+        household_relationship: ensureUnicode(rowData.household_relationship || ''),
+        occupation: ensureUnicode(rowData.occupation || ''),
+        previous_id_no: ensureUnicode(rowData.previous_id_no || ''),
+        taang_land_id_no: ensureUnicode(rowData.taang_land_id_no || ''),
+        nationality: ensureUnicode(rowData.nationality || ''),
+        resident_status: ensureUnicode(rowData.resident_status || ''),
+        religious: ensureUnicode(rowData.religious || ''),
+        house_no: ensureUnicode(rowData.house_no || ''),
+        ward_village_group: currentWard,
+        ward_village_group_type: wardTypes,
         township: currentTownship,
         district: currentDistrict,
-        submission_date: cell('submission_date'),
-        address: ensureUnicode(`${cell('house_no')}, ${wardValue}, ${currentTownship}, ${currentDistrict}`),
+        submission_date: rowData.submission_date || '',
+        address: ensureUnicode(`${rowData.house_no || ''}, ${currentWard}, ${currentTownship}, ${currentDistrict}`),
       };
 
       // Skip completely empty rows
@@ -532,39 +602,28 @@ const ExcelChecker = () => {
       if (!parsedRow.gender) missingFields.push('Gender');
       if (!parsedRow.household_relationship) missingFields.push('Household Relationship');
 
+      // ── Household No. format ──
+      const hhNoFormatError = validateHouseholdNo(parsedRow.household_no);
+      if (hhNoFormatError) missingFields.push(`Household No format: ${hhNoFormatError}`);
+
+      // ── Ta'ang Land ID No. ──
+      const tlidError = validateTaangLandId(parsedRow.taang_land_id_no);
+      if (tlidError) missingFields.push(`Ta'ang Land ID No format: ${tlidError}`);
+
+      // ── Date of Birth ──
+      const dobError = validateDateOfBirth(parsedRow.date_of_birth);
+      if (dobError) missingFields.push(dobError);
+
+      // ── Ward/Village/Group format ──
+      const wardFormatError = validateWardVillageGroup(parsedRow.ward_village_group);
+      if (wardFormatError && parsedRow.ward_village_group) missingFields.push(`Ward format: ${wardFormatError}`);
+
+      // ── Myanmar text quality ──
       const spellingIssues = [];
-
-      // ── Household No. validation ──
-      const hnError = validateHouseholdNo(parsedRow.household_no);
-      if (hnError) spellingIssues.push({ field: 'Household No.', value: parsedRow.household_no, issue: hnError });
-
-      // ── Myanmar text quality validation (fieldKey-aware) ──
       for (const field of MYANMAR_FIELDS) {
         const issue = validateMyanmarText(parsedRow[field.key], field.key);
         if (issue) spellingIssues.push({ field: field.label, value: parsedRow[field.key], issue });
       }
-
-      // ── Date of Birth validation ──
-      const dobError = validateDateOfBirth(parsedRow.date_of_birth);
-      if (dobError) spellingIssues.push({ field: 'Date of Birth', value: parsedRow.date_of_birth, issue: dobError });
-
-      // ── Ward/Village/Group format ──
-      const wardError = validateWardVillageGroup(parsedRow.ward_village_group);
-      if (wardError) spellingIssues.push({ field: 'Ward/Village/Group', value: parsedRow.ward_village_group, issue: wardError });
-
-      // ── District must end with " ခရိုင်" ──
-      if (parsedRow.district && !parsedRow.district.endsWith(' ခရိုင်')) {
-        spellingIssues.push({ field: 'District', value: parsedRow.district, issue: '" ခရိုင်" ဟူသောစကားလုံးဖြင့် အဆုံးသတ်ရမည်။ ဥပမာ — "မန်တုံ ခရိုင်"' });
-      }
-
-      // ── Township must end with " မြို့နယ်" ──
-      if (parsedRow.township && !parsedRow.township.endsWith(' မြို့နယ်')) {
-        spellingIssues.push({ field: 'Township', value: parsedRow.township, issue: '" မြို့နယ်" ဟူသောစကားလုံးဖြင့် အဆုံးသတ်ရမည်။ ဥပမာ — "နမ္မတူ မြို့နယ်"' });
-      }
-
-      // ── Ta'ang Land ID No. ──
-      const tlidError = validateTaangLandId(parsedRow.taang_land_id_no);
-      if (tlidError) spellingIssues.push({ field: "Ta'ang Land ID No.", value: parsedRow.taang_land_id_no, issue: tlidError });
 
       // ── Categorize ──
       if (missingFields.length > 0) {
@@ -575,6 +634,19 @@ const ExcelChecker = () => {
       } else {
         validRows.push(parsedRow);
       }
+    });
+
+    // ── Household-level ID requirements (mirrors TPS ExcelChecker exactly) ──
+    const allRows = [...errors.map(e => e.data), ...warnings.map(w => w.data), ...validRows];
+    const householdIDErrors = validateHouseholdIDRequirements(allRows);
+    householdIDErrors.forEach(err => {
+      errors.push({
+        rowNumber: err.rowNumbers.join(', ') + '...',
+        data: { name: `Household: ${err.householdNo}` },
+        missingFields: [`${err.issue}: ${err.detail}`],
+        spellingIssues: [],
+        severity: 'error'
+      });
     });
 
     return {
