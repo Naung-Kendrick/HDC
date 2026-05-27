@@ -6,7 +6,7 @@ import { zg2uni } from 'rabbit-node';
 import {
   AlertCircle, CheckCircle2, Upload, FileSpreadsheet,
   Loader2, Download, FileCheck, AlertTriangle, ChevronDown,
-  ChevronUp, FileWarning, Table, ClipboardCheck
+  ChevronUp, FileWarning, Table, ClipboardCheck, XCircle, LayoutGrid
 } from 'lucide-react';
 
 // ============ MYANMAR TEXT UTILITIES (Matching CsvUploader ruleset) ============
@@ -817,6 +817,140 @@ const ExcelChecker = () => {
               <span className="text-[12px] sm:text-[13px]">Converting Excel to CSV and validating data...</span>
             </div>
           )}
+
+          {/* Guidelines & Requirements Panel */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {/* File Requirements */}
+            <section className="border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
+              <div className="border-b border-[#E5E7EB] p-2.5 sm:p-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                    <FileCheck size={14} className="sm:w-4 sm:h-4 text-[#1A1A1A]" />
+                  </div>
+                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-[#1A1A1A]">File Requirements</h3>
+                </div>
+              </div>
+              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                <ul className="space-y-1 text-[10px] sm:text-[11px] text-[#737373]">
+                  <li>• Supported: .XLSX, .XLS, .CSV</li>
+                  <li>• Max size: 10MB</li>
+                  <li>• First row must contain headers</li>
+                </ul>
+              </div>
+            </section>
+
+            {/* DO Section */}
+            <section className="border border-green-200 bg-green-50/20" style={{ borderRadius: '0px' }}>
+              <div className="border-b border-green-200 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 size={14} className="sm:w-4 sm:h-4 text-green-600" />
+                  </div>
+                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-green-800">Do / လုပ်ရန်</h3>
+                </div>
+              </div>
+              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                <ul className="space-y-1.5 text-[10px] sm:text-[11px] text-[#1A1A1A]">
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-green-600 font-bold mt-0.5">✓</span>
+                    <span><span className="font-medium">ယူနီကုဒ် မြန်မာဖောင့် အသုံးပြုရန်</span><span className="text-[#737373]"> (Use Unicode Myanmar font)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-green-600 font-bold mt-0.5">✓</span>
+                    <span><span className="font-medium">လိုအပ်သော အချက်အလက်ကွက်လပ်များအားလုံး ဖြည့်စွက်ရန်</span><span className="text-[#737373]"> (Fill all required fields)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-green-600 font-bold mt-0.5">✓</span>
+                    <span><span className="font-medium">စာမတင်မီ စာလုံးပေါင်းသတ်ပုံကို စစ်ဆေးရန်</span><span className="text-[#737373]"> (Check spelling before upload)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-green-600 font-bold mt-0.5">✓</span>
+                    <span><span className="font-medium">ရက်စွဲပုံစံကို ရက်-လ-ခုနှစ် (DD-MM-YYYY) အတိုင်း အသုံးပြုရန်</span><span className="text-[#737373]"> (Use DD-MM-YYYY date format)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-green-600 font-bold mt-0.5">✓</span>
+                    <span><span className="font-medium">အိမ်ထောင်စုစာရင်း နံပါတ်များကို မှန်ကန်မှု ရှိ၊ မရှိ စစ်ဆေးရန်</span><span className="text-[#737373]"> (Verify household numbers)</span></span>
+                  </li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Required Fields */}
+            <section className="border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
+              <div className="border-b border-[#E5E7EB] p-2.5 sm:p-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                    <LayoutGrid size={14} className="sm:w-4 sm:h-4 text-[#1A1A1A]" />
+                  </div>
+                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-[#1A1A1A]">Required Fields / မဖြစ်မနေဖြည့်သွင်းရန် လိုအပ်သည်</h3>
+                </div>
+              </div>
+              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                <div className="grid grid-cols-2 gap-x-2 sm:gap-x-3 gap-y-1.5 text-[10px] sm:text-[11px]">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                    <span><span className="font-medium">ရပ်ကွက် / ကျေးရွာအုပ်စု / ကျေးရွာ</span><span className="text-[#737373]"> (Ward/Village/Group)</span></span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                    <span><span className="font-medium">မြို့နယ်</span><span className="text-[#737373]"> (Township)</span></span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                    <span><span className="font-medium">ခရိုင်</span><span className="text-[#737373]"> (District)</span></span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                    <span><span className="font-medium">ကျား/မ (ကျား၊ မ ရွေးချယ်ရန်)</span><span className="text-[#737373]"> (Gender)</span></span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                    <span><span className="font-medium">တော်စပ်ပုံ</span><span className="text-[#737373]"> (Relationship)</span></span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="w-1.5 h-1.5 bg-orange-500 flex-shrink-0"></span>
+                    <span><span className="font-medium">အမည် (မြန်မာဘာသာ)</span><span className="text-[#737373]"> (Name (Myanmar))</span></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* DON'T Section - Full Width */}
+          <section className="border border-red-200 bg-red-50/20" style={{ borderRadius: '0px' }}>
+            <div className="border-b border-red-200 p-2.5 sm:p-3">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <XCircle size={14} className="sm:w-4 sm:h-4 text-red-600" />
+                </div>
+                <h3 className="text-[12px] sm:text-[13px] font-semibold text-red-800">Don't / ရှောင်ရန်</h3>
+              </div>
+            </div>
+            <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[10px] sm:text-[11px] text-[#1A1A1A]">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-red-600 font-bold mt-0.5">✗</span>
+                  <span><span className="font-medium">လိုအပ်သော အချက်အလက်ကွက်လပ်များကို ဗလာ (အလွတ်) မထားရ</span><span className="text-[#737373]"> (Leave required fields empty)</span></span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-red-600 font-bold mt-0.5">✗</span>
+                  <span><span className="font-medium">ဇော်ဂျီနှင့် ယူနီကုဒ် ဖောင့်များကို ရောနှောမသုံးရ</span><span className="text-[#737373]"> (Mix Zawgyi & Unicode fonts)</span></span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-red-600 font-bold mt-0.5">✗</span>
+                  <span><span className="font-medium">အထူးပြုလုပ်ထားသော သင်္ကေတ/စာလုံးများကို မသုံးရ</span><span className="text-[#737373]"> (Use special characters)</span></span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-red-600 font-bold mt-0.5">✗</span>
+                  <span><span className="font-medium">Excel တွင် ကွက်လပ် (Cells) များကို ပေါင်းစပ်ခြင်း မပြုရ</span><span className="text-[#737373]"> (Merge cells in Excel)</span></span>
+                </li>
+                <li className="flex items-start gap-1.5 sm:col-span-2">
+                  <span className="text-red-600 font-bold mt-0.5">✗</span>
+                  <span><span className="font-medium">ဒေတာအချက်အလက်များကို ထပ်ခါတလဲလဲ (နှစ်ခါ) မထည့်ရ</span><span className="text-[#737373]"> (Add duplicate entries)</span></span>
+                </li>
+              </div>
+            </div>
+          </section>
         </div>
       )}
 
