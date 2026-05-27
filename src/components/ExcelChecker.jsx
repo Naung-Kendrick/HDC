@@ -100,12 +100,20 @@ const normalizeDateOfBirth = (text) => {
   s = s.replace(/[\u200B-\u200D\uFEFF]/g, '');
   s = s.replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g, ' ');
   s = s.replace(/\s+/g, '');
-  s = s.replace(/[-\/]/g, '.');
+  s = s.replace(/[-\/\uff0e\u3002\u104a\u104b,]/g, '.');
   const parts = s.split('.');
   if (parts.length === 3 && parts.every(p => /^\d+$/.test(myanmarToArabicDigits(p)))) {
     const [d, m, y] = parts;
     const padArabic = (v) => { const a = myanmarToArabicDigits(v); return a.length === 1 ? '0' + a : a; };
-    const englishDob = `${padArabic(d)}.${padArabic(m)}.${myanmarToArabicDigits(y)}`;
+    const padArabicYear = (v) => {
+      let arabic = myanmarToArabicDigits(v);
+      if (arabic.length === 2) {
+        const yr = parseInt(arabic, 10);
+        arabic = String(yr >= 30 ? 1900 + yr : 2000 + yr);
+      }
+      return arabic;
+    };
+    const englishDob = `${padArabic(d)}.${padArabic(m)}.${padArabicYear(y)}`;
     return arabicToMyanmarDigits(englishDob);
   }
   return arabicToMyanmarDigits(s);
@@ -267,11 +275,6 @@ const validateMyanmarText = (text, fieldKey = null) => {
     if (fieldKey === 'religious') {
       if (!DICTS.religions.some(r => r === str)) {
         const sugg = getSpellingSuggestion(str, DICTS.religions);
-        if (sugg) issues.push(`Did you mean "${sugg}"?`);
-      }
-    } else if (fieldKey === 'household_relationship') {
-      if (!DICTS.relationships.some(r => r === str)) {
-        const sugg = getSpellingSuggestion(str, DICTS.relationships);
         if (sugg) issues.push(`Did you mean "${sugg}"?`);
       }
     } else if (fieldKey === 'nationality' || fieldKey === 'resident_status') {
