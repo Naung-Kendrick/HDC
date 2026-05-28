@@ -466,20 +466,20 @@ const playNotificationSound = (isSuccess) => {
         osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
       });
     } else {
-      // Soft warnings double flat beep tone (descending A3 -> F3 warning pitch)
-      const notes = [220.00, 185.00];
-      const startTimes = [0, 0.15];
-      const durations = [0.15, 0.25];
+      // Distinct, solid 4-pulse warning alert chime (C4 -> C4 -> A3 -> A3)
+      const notes = [261.63, 261.63, 220.00, 220.00];
+      const startTimes = [0, 0.22, 0.48, 0.74];
+      const durations = [0.18, 0.18, 0.22, 0.45];
 
       notes.forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gainNode = ctx.createGain();
 
-        osc.type = 'triangle'; // Soft triangle beep
+        osc.type = 'triangle'; // Rich, highly audible warning beep
         osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
 
         gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
-        gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + startTimes[i] + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0.48, ctx.currentTime + startTimes[i] + 0.01);
         gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
 
         osc.connect(gainNode);
