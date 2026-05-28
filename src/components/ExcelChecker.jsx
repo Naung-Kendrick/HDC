@@ -6,7 +6,8 @@ import { zg2uni } from 'rabbit-node';
 import {
   AlertCircle, CheckCircle2, Upload, FileSpreadsheet,
   Loader2, Download, FileCheck, AlertTriangle, ChevronDown,
-  ChevronUp, FileWarning, Table, ClipboardCheck, XCircle, LayoutGrid
+  ChevronUp, FileWarning, Table, ClipboardCheck, XCircle, LayoutGrid,
+  Volume2, Play
 } from 'lucide-react';
 
 // ============ MYANMAR TEXT UTILITIES (Matching CsvUploader ruleset) ============
@@ -435,59 +436,156 @@ const MYANMAR_FIELDS = [
 ];
 
 // ============ NOTIFICATION SOUNDS ============
-const playNotificationSound = (isSuccess) => {
+const playNotificationSound = (type, soundName) => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
 
-    if (isSuccess) {
-      // Ascending premium success chime arpeggio (C5 -> E5 -> G5 -> C6)
-      const notes = [523.25, 659.25, 783.99, 1046.50];
-      const startTimes = [0, 0.08, 0.16, 0.24];
-      const durations = [0.3, 0.3, 0.3, 0.4];
+    if (type === 'success') {
+      if (soundName === 'arpeggio') {
+        // Ascending premium success chime arpeggio (C5 -> E5 -> G5 -> C6)
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        const startTimes = [0, 0.08, 0.16, 0.24];
+        const durations = [0.3, 0.3, 0.3, 0.4];
 
-      notes.forEach((freq, i) => {
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
+          gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
+          gainNode.gain.linearRampToValueAtTime(0.12, ctx.currentTime + startTimes[i] + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
+          osc.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          osc.start(ctx.currentTime + startTimes[i]);
+          osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
+        });
+      } else if (soundName === 'double') {
+        // Classic Double Chime (G5 -> C6 fast)
+        const notes = [783.99, 1046.50];
+        const startTimes = [0, 0.10];
+        const durations = [0.25, 0.35];
+
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
+          gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
+          gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTimes[i] + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
+          osc.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          osc.start(ctx.currentTime + startTimes[i]);
+          osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
+        });
+      } else if (soundName === 'bell') {
+        // Zen Bell (deep resonance C5 + C4)
         const osc = ctx.createOscillator();
+        const subOsc = ctx.createOscillator();
         const gainNode = ctx.createGain();
-
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
-
-        // Smooth volume envelope with decay
-        gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
-        gainNode.gain.linearRampToValueAtTime(0.12, ctx.currentTime + startTimes[i] + 0.02);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
-
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        subOsc.type = 'triangle';
+        subOsc.frequency.setValueAtTime(261.63, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
         osc.connect(gainNode);
+        subOsc.connect(gainNode);
         gainNode.connect(ctx.destination);
-
-        osc.start(ctx.currentTime + startTimes[i]);
-        osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
-      });
-    } else {
-      // Soft warnings double flat beep tone (descending A3 -> F3 warning pitch)
-      const notes = [220.00, 185.00];
-      const startTimes = [0, 0.15];
-      const durations = [0.15, 0.25];
-
-      notes.forEach((freq, i) => {
+        osc.start(ctx.currentTime);
+        subOsc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 1.2);
+        subOsc.stop(ctx.currentTime + 1.2);
+      } else if (soundName === 'arcade') {
+        // Retro Arcade upward sweep
         const osc = ctx.createOscillator();
         const gainNode = ctx.createGain();
-
-        osc.type = 'triangle'; // Soft triangle beep
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
-
-        gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
-        gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTimes[i] + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
-
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.35);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
         osc.connect(gainNode);
         gainNode.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+      }
+    } else if (type === 'error') {
+      if (soundName === 'caution') {
+        // Soft warnings double flat beep tone (descending A3 -> F3 warning pitch)
+        const notes = [220.00, 185.00];
+        const startTimes = [0, 0.15];
+        const durations = [0.15, 0.25];
 
-        osc.start(ctx.currentTime + startTimes[i]);
-        osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
-      });
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          osc.type = 'triangle'; // Soft triangle beep
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
+          gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
+          gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTimes[i] + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
+          osc.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          osc.start(ctx.currentTime + startTimes[i]);
+          osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
+        });
+      } else if (soundName === 'buzz') {
+        // Low Buzz dashboard warning
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(110.00, ctx.currentTime);
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(300, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+        osc.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      } else if (soundName === 'pulse') {
+        // Double Pulse warning beep-beep
+        const notes = [293.66, 293.66];
+        const startTimes = [0, 0.12];
+        const durations = [0.08, 0.08];
+
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
+          gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
+          gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTimes[i] + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
+          osc.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          osc.start(ctx.currentTime + startTimes[i]);
+          osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
+        });
+      } else if (soundName === 'descending') {
+        // Arcade Descending sweep
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.4);
+        gainNode.gain.setValueAtTime(0, ctx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      }
     }
   } catch (err) {
     console.warn("Audio playback failed: ", err);
@@ -508,6 +606,23 @@ const ExcelChecker = () => {
     valid: false,
   });
   const fileInputRef = useRef(null);
+
+  // sound settings states
+  const [successSound, setSuccessSound] = useState(() => localStorage.getItem('successSound') || 'arpeggio');
+  const [errorSound, setErrorSound] = useState(() => localStorage.getItem('errorSound') || 'caution');
+  const [soundSettingsOpen, setSoundSettingsOpen] = useState(false);
+
+  const changeSuccessSound = (sound) => {
+    setSuccessSound(sound);
+    localStorage.setItem('successSound', sound);
+    playNotificationSound('success', sound);
+  };
+
+  const changeErrorSound = (sound) => {
+    setErrorSound(sound);
+    localStorage.setItem('errorSound', sound);
+    playNotificationSound('error', sound);
+  };
 
   // Toggle section expansion
   const toggleSection = (section) => {
@@ -711,9 +826,9 @@ const ExcelChecker = () => {
 
       // Play success chime or error warning sound
       if (results.errors.length === 0) {
-        playNotificationSound(true);
+        playNotificationSound('success', successSound);
       } else {
-        playNotificationSound(false);
+        playNotificationSound('error', errorSound);
       }
 
       // Auto-expand sections based on results
@@ -904,6 +1019,66 @@ const ExcelChecker = () => {
 
       {/* Content Area */}
       <div className="p-4">
+
+        {/* Sound Settings Panel */}
+        {soundSettingsOpen && (
+          <div className="p-3 bg-[#F8FAFC] border-2 border-[#1A1A1A] mb-4 space-y-3" style={{ borderRadius: '0px' }}>
+            <h4 className="text-[12px] font-bold text-[#1A1A1A] uppercase tracking-wider border-b border-[#E2E8F0] pb-1.5 flex items-center gap-1.5">
+              <Volume2 size={14} className="text-[#2563EB]" />
+              <span>အသံ ရွေးချယ်မှုများ (Notification Sound Settings)</span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[12px]">
+              {/* Success Sound Select */}
+              <div className="space-y-2">
+                <label className="font-semibold text-green-700 block">✓ အောင်မြင်သော အသံ (Success Sound)</label>
+                <div className="flex gap-2">
+                  <select
+                    value={successSound}
+                    onChange={(e) => changeSuccessSound(e.target.value)}
+                    className="p-1.5 border border-[#D1D5DB] text-[12px] bg-white flex-1"
+                  >
+                    <option value="arpeggio">Premium Arpeggio (Default)</option>
+                    <option value="double">Classic Double Chime</option>
+                    <option value="bell">Zen Bell Chime</option>
+                    <option value="arcade">Retro Arcade Upward</option>
+                  </select>
+                  <button
+                    onClick={() => playNotificationSound('success', successSound)}
+                    className="flex items-center justify-center p-1.5 bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6]"
+                    title="Play Preview"
+                    style={{ width: '32px', height: '32px', border: '1px solid #D1D5DB', borderRadius: '0px' }}
+                  >
+                    <Play size={12} className="text-[#1A1A1A]" />
+                  </button>
+                </div>
+              </div>
+              {/* Error Sound Select */}
+              <div className="space-y-2">
+                <label className="font-semibold text-red-700 block">✗ အမှားတွေ့ရှိသည့် အသံ (Error Sound)</label>
+                <div className="flex gap-2">
+                  <select
+                    value={errorSound}
+                    onChange={(e) => changeErrorSound(e.target.value)}
+                    className="p-1.5 border border-[#D1D5DB] text-[12px] bg-white flex-1"
+                  >
+                    <option value="caution">Soft Caution (Default)</option>
+                    <option value="buzz">Low warning Buzz</option>
+                    <option value="pulse">Double Pulse Alert</option>
+                    <option value="descending">Retro Arcade Downward</option>
+                  </select>
+                  <button
+                    onClick={() => playNotificationSound('error', errorSound)}
+                    className="flex items-center justify-center p-1.5 bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6]"
+                    title="Play Preview"
+                    style={{ width: '32px', height: '32px', border: '1px solid #D1D5DB', borderRadius: '0px' }}
+                  >
+                    <Play size={12} className="text-[#1A1A1A]" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* File Upload Area - TPS 1 Style - Responsive - Always Visible */}
         <div className="flex flex-col gap-3 sm:gap-4 mb-4">
