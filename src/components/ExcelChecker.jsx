@@ -56,17 +56,36 @@ const normalizeCommaList = (text) => {
   return parts.join(', ');
 };
 
+// ── Digit Conversion Utilities ──
+const myanmarToArabicDigits = (text) => {
+  if (!text) return text;
+  return String(text).replace(/[၀-၉]/g, ch => String('၀၁၂၃၄၅၆၇၈၉'.indexOf(ch)));
+};
+
+const arabicToMyanmarDigits = (text) => {
+  if (!text) return text;
+  return String(text).replace(/[0-9]/g, ch => '၀၁၂၃၄၅၆၇၈၉'[parseInt(ch, 10)]);
+};
+
 // ── ID Normalization ──
 const normalizeTaangLandId = (text) => {
   if (text === null || text === undefined) return '';
-  let s = String(text);
-  s = s.replace(/[\u200B-\u200D\uFEFF\u00A0\s]/g, '');
+  let s = String(text).trim();
   if (s === '') return '';
+
+  // Convert Myanmar digits in ID to English digits first
+  s = myanmarToArabicDigits(s);
+
+  // Clean up hidden spaces
+  s = s.replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '');
   s = s.replace(/[–—]/g, '-');
-  if (/^[Nn][Oo]/.test(s)) {
-    s = s.replace(/^[Nn][Oo][-.,;:|\\/_=#~]*/, 'No-');
+  s = s.replace(/\s*-\s*/g, '-');
+
+  if (/^[Nn][Oo]/i.test(s)) {
+    const digits = s.replace(/^[Nn][Oo][-.,;:|\\/_=#~\s]*/i, '');
+    return 'No - ' + digits;
   } else if (/^\d/.test(s)) {
-    s = 'No-' + s;
+    return 'No - ' + s;
   }
   return s;
 };
@@ -81,17 +100,6 @@ const normalizePreviousId = (text) => {
   s = s.replace(/\s*\)\s*/g, ')');
   s = s.replace(/\s+/g, ' ').trim();
   return s;
-};
-
-// ── Date of Birth Normalization & Validation ──
-const myanmarToArabicDigits = (text) => {
-  if (!text) return text;
-  return String(text).replace(/[၀-၉]/g, ch => String('၀၁၂၃၄၅၆၇၈၉'.indexOf(ch)));
-};
-
-const arabicToMyanmarDigits = (text) => {
-  if (!text) return text;
-  return String(text).replace(/[0-9]/g, ch => '၀၁၂၃၄၅၆၇၈၉'[parseInt(ch, 10)]);
 };
 
 const normalizeDateOfBirth = (text) => {
@@ -316,8 +324,16 @@ const autoCorrectTownship = (value) => {
 
 const autoCorrectWardVillageGroup = (value) => {
   if (!value || typeof value !== 'string') return value;
-  const str = value.trim();
+  let str = value.trim();
   if (str === '') return str;
+
+  // Enforce spelling correction according to rules
+  str = str.replace(/ရက်ကွက်/g, 'ရပ်ကွက်');
+  str = str.replace(/ရပ်ကွပ်/g, 'ရပ်ကွက်');
+  str = str.replace(/ကျေးရွာအုပ်စု/g, 'အုပ်စု');
+  str = str.replace(/ရွာအုပ်စု/g, 'အုပ်စု');
+  str = str.replace(/ကျေးရွာ/g, 'ရွာ');
+
   const wardM = str.match(/^(.+?)ရပ်ကွက်$/);
   if (wardM && !str.includes(' ရပ်ကွက်')) return `${wardM[1].trim()} ရပ်ကွက်`;
   const villageM = str.match(/^(.+?)ရွာ$/);
@@ -349,11 +365,16 @@ const validateHouseholdNo = (value) => {
 const validateTaangLandId = (value) => {
   if (!value || typeof value !== 'string' || value.trim() === '') return null;
   const str = value.trim();
-  let normalized = str.replace(/[\u200B-\u200D\uFEFF\u00A0\s]/g, '').replace(/[–—]/g, '-');
-  let numericPart = /^[Nn][Oo]/.test(normalized)
-    ? normalized.replace(/^[Nn][Oo][-.,;:|\\/_=#~]*/, '')
-    : normalized;
-  if (!/^[0-9၀-၉]+$/.test(numericPart)) return "Ta'ang Land ID No. must contain digits only";
+
+  if (!str.startsWith('No - ')) {
+    return 'နံပါတ်ပုံစံသည် "No - " ဖြင့် စတင်ရပါမည် (ဥပမာ - No - 01001412000123456)';
+  }
+
+  const numericPart = str.substring(5);
+  if (!/^[0-9]+$/.test(numericPart)) {
+    return 'Ta\'ang Land ID နံပါတ်ကို English နံပါတ်ဖြင့်သာ ဖြည့်သွင်းရပါမည် (English digits only)';
+  }
+
   if (numericPart.length <= 3) return "Ta'ang Land ID No. must have more than 3 digits";
   if (numericPart.length >= 20) return "Ta'ang Land ID No. must have less than 20 digits";
   return null;
@@ -372,7 +393,7 @@ const validateWardVillageGroup = (value) => {
   if (!value || typeof value !== 'string' || value.trim() === '') return 'Value is required';
   const corrected = autoCorrectWardVillageGroup(value.trim());
   if (detectWardVillageGroupType(corrected) === 'unknown')
-    return 'Must contain "ရပ်ကွက်" (Ward), "ရွာ" (Village), or "အုပ်စု" (Group)';
+    return '"ရပ်ကွက်" ၊ "ရွာ" သို့မဟုတ် "အုပ်စု" စကားလုံးတစ်ခုခု မဖြစ်မနေ ထည့်သွင်းပေးရမည်။ ဥပမာ — "အောင်မေတ္တာ ရပ်ကွက်" ၊ "အောင်ချမ်းသာ ရွာ" ၊ "အောင်မင်္ဂလာ အုပ်စု" (Must contain "ရပ်ကွက်", "ရွာ", or "အုပ်စု")';
   return null;
 };
 
@@ -419,6 +440,7 @@ const ExcelChecker = () => {
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState(null);
   const [checkResults, setCheckResults] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     summary: true,
     errors: true,
@@ -481,15 +503,15 @@ const ExcelChecker = () => {
       });
 
       // ── Forward Fill with normalization (mirrors CsvUploader pipeline) ──
-      const rawHn       = normalizeWhitespace(rowData.household_no);
-      const rawWard     = normalizeWhitespace(rowData.ward_village_group);
+      const rawHn = normalizeWhitespace(rowData.household_no);
+      const rawWard = normalizeWhitespace(rowData.ward_village_group);
       const rawTownship = normalizeWhitespace(rowData.township);
       const rawDistrict = normalizeWhitespace(rowData.district);
 
       if (rawHn !== '') currentHouseholdNo = formatHouseholdNo(ensureUnicode(rawHn));
       else if (index === 0 && rawHn === '') currentHouseholdNo = 'UNKNOWN-1';
 
-      if (rawWard !== '')     currentWard     = rawWard;
+      if (rawWard !== '') currentWard = rawWard;
       if (rawTownship !== '') currentTownship = autoCorrectTownship(ensureUnicode(rawTownship));
       if (rawDistrict !== '') currentDistrict = autoCorrectDistrict(ensureUnicode(rawDistrict));
 
@@ -593,9 +615,8 @@ const ExcelChecker = () => {
     };
   };
 
-  // Handle file upload
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
+  // Helper to process the File object
+  const processFile = async (file) => {
     if (!file) return;
 
     // Check file type
@@ -641,6 +662,36 @@ const ExcelChecker = () => {
       alert(err.message || 'Failed to process file. Please check the format.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    await processFile(file);
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      await processFile(file);
     }
   };
 
@@ -760,11 +811,10 @@ const ExcelChecker = () => {
         {status === 'fail' && <AlertCircle size={16} className="text-red-600 sm:w-[18px] sm:h-[18px]" />}
         {status === 'warning' && <AlertTriangle size={16} className="text-orange-600 sm:w-[18px] sm:h-[18px]" />}
         {count !== undefined && (
-          <span className={`font-bold text-[12px] sm:text-[13px] ${
-            status === 'pass' ? 'text-green-600' :
-            status === 'fail' ? 'text-red-600' :
-            'text-orange-600'
-          }`}>
+          <span className={`font-bold text-[12px] sm:text-[13px] ${status === 'pass' ? 'text-green-600' :
+              status === 'fail' ? 'text-red-600' :
+                'text-orange-600'
+            }`}>
             {count}
           </span>
         )}
@@ -780,7 +830,7 @@ const ExcelChecker = () => {
           <ClipboardCheck size={16} className="text-[#1A1A1A]" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Excel File Validator</h2>
+          <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Excel ဖိုင် မှန်ကန်မှု စစ်ဆေးသည့်ကိရိယာ(Excel File Validator)</h2>
           <p className="text-[11px] text-[#737373]">Upload and validate files</p>
         </div>
       </div>
@@ -788,18 +838,100 @@ const ExcelChecker = () => {
       {/* Content Area */}
       <div className="p-4">
 
-      {/* File Upload Area - TPS 1 Style - Responsive */}
-      {!checkResults && (
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <label className="flex flex-col items-center justify-center w-full h-36 sm:h-44 md:h-48 border border-dashed border-[#E5E7EB] cursor-pointer bg-white hover:bg-[#F3F4F6] transition-colors px-4" style={{ borderWidth: '2px' }}>
-            <div className="flex flex-col items-center justify-center text-center">
-              <FileSpreadsheet size={32} className="text-[#737373] mb-2 sm:mb-3 sm:w-10 sm:h-10" />
-              <p className="text-[12px] sm:text-[13px] text-[#1A1A1A] font-medium">Click to upload or drag and drop</p>
-              <p className="text-[10px] sm:text-[11px] text-[#737373] mt-1 sm:mt-2">Supports .XLSX, .XLS, and .CSV files</p>
-              <div className="flex items-center gap-2 mt-3 sm:mt-4">
-                <span className="px-2 sm:px-3 py-1 bg-white border border-[#E5E7EB] text-[10px] sm:text-[11px] text-[#737373]">Excel</span>
-                <span className="px-2 sm:px-3 py-1 bg-white border border-[#E5E7EB] text-[10px] sm:text-[11px] text-[#737373]">CSV</span>
-              </div>
+        {/* File Upload Area - TPS 1 Style - Responsive - Always Visible */}
+        <div className="flex flex-col gap-3 sm:gap-4 mb-4">
+          <motion.label
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            whileHover={
+              checkResults
+                ? checkResults.errors.length === 0
+                  ? { scale: 1.002, borderColor: '#16A34A', backgroundColor: '#F0FDF4', boxShadow: '0 8px 24px -5px rgba(22, 163, 74, 0.08)' }
+                  : { scale: 1.002, borderColor: '#DC2626', backgroundColor: '#FEF2F2', boxShadow: '0 8px 24px -5px rgba(220, 38, 38, 0.08)' }
+                : { scale: 1.002, borderColor: '#2563EB', backgroundColor: '#EFF6FF', boxShadow: '0 8px 24px -5px rgba(37, 99, 235, 0.08)' }
+            }
+            whileTap={{ scale: 0.995 }}
+            animate={{ 
+              borderColor: isDragging 
+                ? '#2563EB' 
+                : checkResults
+                  ? checkResults.errors.length === 0 ? '#16A34A' : '#DC2626'
+                  : '#E5E7EB',
+              backgroundColor: isDragging
+                ? '#EFF6FF'
+                : checkResults
+                  ? checkResults.errors.length === 0 ? '#F0FDF4' : '#FEF2F2'
+                  : '#FFFFFF',
+            }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="relative overflow-hidden flex flex-col items-center justify-center w-full h-36 sm:h-44 md:h-48 border border-dashed cursor-pointer px-4 select-none group"
+            style={{ borderWidth: '2px', borderRadius: '0px' }}
+          >
+            {/* Shimmer overlay when dragging */}
+            {isDragging && (
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: '100%' }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+                className="absolute inset-0 pointer-events-none bg-gradient-to-r from-transparent via-[#2563EB]/10 to-transparent"
+              />
+            )}
+            
+            <div className="flex flex-col items-center justify-center text-center z-10">
+              {/* Floating animated icon */}
+              <motion.div
+                animate={{ 
+                  y: [0, -6, 0]
+                }}
+                transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                className="mb-2 sm:mb-3"
+              >
+                {checkResults ? (
+                  checkResults.errors.length === 0 ? (
+                    <CheckCircle2 size={32} className="sm:w-10 sm:h-10 text-[#16A34A]" />
+                  ) : (
+                    <XCircle size={32} className="sm:w-10 sm:h-10 text-[#DC2626]" />
+                  )
+                ) : (
+                  <FileSpreadsheet size={32} className={`sm:w-10 sm:h-10 transition-colors duration-300 ${
+                    isDragging ? 'text-[#2563EB]' : 'text-[#737373] group-hover:text-[#2563EB]'
+                  }`} />
+                )}
+              </motion.div>
+
+              {checkResults ? (
+                checkResults.errors.length === 0 ? (
+                  <>
+                    <p className="text-[13px] sm:text-[14px] font-bold text-[#15803D]">ဖိုင်စစ်ဆေးပြီးပါပြီ - ဒေတာများအားလုံး မှန်ကန်ပါသည် (Perfect - All Checks Passed)</p>
+                    <p className="text-[10px] sm:text-[11px] text-[#166534] mt-1">အမှားအယွင်းမရှိပါ။ Click သို့မဟုတ် Drag ပြုလုပ်ပြီး အခြားဖိုင်တင်သွင်းနိုင်ပါသည် (All clean! Click or drag to upload a different file)</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[13px] sm:text-[14px] font-bold text-[#B91C1C]">ပြင်ဆင်ရန် အမှားများ တွေ့ရှိရပါသည် (Errors Found - Fix Required)</p>
+                    <p className="text-[10px] sm:text-[11px] text-[#991B1B] mt-1">စစ်ဆေးချက်ကို အောက်တွင် ကြည့်ရှုပါ။ Click သို့မဟုတ် Drag ပြုလုပ်ပြီး အခြားဖိုင်ထပ်မံတင်သွင်းနိုင်ပါသည် (See errors below)</p>
+                  </>
+                )
+              ) : (
+                <>
+                  <p className={`text-[12px] sm:text-[13px] font-semibold transition-colors duration-300 ${
+                    isDragging ? 'text-[#1D4ED8]' : 'text-[#1A1A1A] group-hover:text-[#2563EB]'
+                  }`}>Click to upload or drag and drop</p>
+                  <p className="text-[10px] sm:text-[11px] text-[#737373] mt-1 sm:mt-2">Supports .XLSX, .XLS, and .CSV files</p>
+                </>
+              )}
+
+              {/* Excel / CSV pill badges - only show when no file is loaded */}
+              {!checkResults && (
+                <div className="flex items-center gap-2 mt-3 sm:mt-4">
+                  <span className={`px-2 sm:px-3 py-1 bg-white border text-[10px] sm:text-[11px] transition-colors duration-300 ${
+                    isDragging ? 'border-[#BFDBFE] text-[#1D4ED8]' : 'border-[#E5E7EB] text-[#737373] group-hover:border-[#BFDBFE] group-hover:text-[#1D4ED8]'
+                  }`}>Excel</span>
+                  <span className={`px-2 sm:px-3 py-1 bg-white border text-[10px] sm:text-[11px] transition-colors duration-300 ${
+                    isDragging ? 'border-[#BFDBFE] text-[#1D4ED8]' : 'border-[#E5E7EB] text-[#737373] group-hover:border-[#BFDBFE] group-hover:text-[#1D4ED8]'
+                  }`}>CSV</span>
+                </div>
+              )}
             </div>
             <input
               type="file"
@@ -809,7 +941,7 @@ const ExcelChecker = () => {
               disabled={loading}
               ref={fileInputRef}
             />
-          </label>
+          </motion.label>
 
           {loading && (
             <div className="flex items-center justify-center gap-2 sm:gap-3 text-[#1A1A1A] font-medium p-3 sm:p-4 bg-[#F3F4F6] border border-[#E5E7EB]">
@@ -817,514 +949,550 @@ const ExcelChecker = () => {
               <span className="text-[12px] sm:text-[13px]">Converting Excel to CSV and validating data...</span>
             </div>
           )}
-
-          {/* Guidelines & Requirements Panel */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {/* File Requirements */}
-            <section className="border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
-              <div className="border-b border-[#E5E7EB] p-2.5 sm:p-3">
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
-                    <FileCheck size={14} className="sm:w-4 sm:h-4 text-[#1A1A1A]" />
-                  </div>
-                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-[#1A1A1A]">File Requirements</h3>
-                </div>
-              </div>
-              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
-                <ul className="space-y-1 text-[10px] sm:text-[11px] text-[#737373]">
-                  <li>• Supported: .XLSX, .XLS, .CSV</li>
-                  <li>• Max size: 10MB</li>
-                  <li>• First row must contain headers</li>
-                </ul>
-              </div>
-            </section>
-
-            {/* DO Section */}
-            <section className="border border-green-200 bg-green-50/20" style={{ borderRadius: '0px' }}>
-              <div className="border-b border-green-200 p-2.5 sm:p-3">
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle2 size={14} className="sm:w-4 sm:h-4 text-green-600" />
-                  </div>
-                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-green-800">Do / လုပ်ရန်</h3>
-                </div>
-              </div>
-              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
-                <ul className="space-y-1.5 text-[10px] sm:text-[11px] text-[#1A1A1A]">
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-green-600 font-bold mt-0.5">✓</span>
-                    <span><span className="font-medium">ယူနီကုဒ် မြန်မာဖောင့် အသုံးပြုရန်</span><span className="text-[#737373]"> (Use Unicode Myanmar font)</span></span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-green-600 font-bold mt-0.5">✓</span>
-                    <span><span className="font-medium">လိုအပ်သော အချက်အလက်ကွက်လပ်များအားလုံး ဖြည့်စွက်ရန်</span><span className="text-[#737373]"> (Fill all required fields)</span></span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-green-600 font-bold mt-0.5">✓</span>
-                    <span><span className="font-medium">စာမတင်မီ စာလုံးပေါင်းသတ်ပုံကို စစ်ဆေးရန်</span><span className="text-[#737373]"> (Check spelling before upload)</span></span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-green-600 font-bold mt-0.5">✓</span>
-                    <span><span className="font-medium">ရက်စွဲပုံစံကို ရက်-လ-ခုနှစ် (DD-MM-YYYY) အတိုင်း အသုံးပြုရန်</span><span className="text-[#737373]"> (Use DD-MM-YYYY date format)</span></span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-green-600 font-bold mt-0.5">✓</span>
-                    <span><span className="font-medium">အိမ်ထောင်စုစာရင်း နံပါတ်များကို မှန်ကန်မှု ရှိ၊ မရှိ စစ်ဆေးရန်</span><span className="text-[#737373]"> (Verify household numbers)</span></span>
-                  </li>
-                </ul>
-              </div>
-            </section>
-
-            {/* Required Fields */}
-            <section className="border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
-              <div className="border-b border-[#E5E7EB] p-2.5 sm:p-3">
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
-                    <LayoutGrid size={14} className="sm:w-4 sm:h-4 text-[#1A1A1A]" />
-                  </div>
-                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-[#1A1A1A]">Required Fields / မဖြစ်မနေဖြည့်သွင်းရန် လိုအပ်သည်</h3>
-                </div>
-              </div>
-              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
-                <div className="grid grid-cols-2 gap-x-2 sm:gap-x-3 gap-y-1.5 text-[10px] sm:text-[11px]">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
-                    <span><span className="font-medium">ရပ်ကွက် / ကျေးရွာအုပ်စု / ကျေးရွာ</span><span className="text-[#737373]"> (Ward/Village/Group)</span></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
-                    <span><span className="font-medium">မြို့နယ်</span><span className="text-[#737373]"> (Township)</span></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
-                    <span><span className="font-medium">ခရိုင်</span><span className="text-[#737373]"> (District)</span></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
-                    <span><span className="font-medium">ကျား/မ (ကျား၊ မ ရွေးချယ်ရန်)</span><span className="text-[#737373]"> (Gender)</span></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
-                    <span><span className="font-medium">တော်စပ်ပုံ</span><span className="text-[#737373]"> (Relationship)</span></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="w-1.5 h-1.5 bg-orange-500 flex-shrink-0"></span>
-                    <span><span className="font-medium">အမည် (မြန်မာဘာသာ)</span><span className="text-[#737373]"> (Name (Myanmar))</span></span>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* DON'T Section - Full Width */}
-          <section className="border border-red-200 bg-red-50/20" style={{ borderRadius: '0px' }}>
-            <div className="border-b border-red-200 p-2.5 sm:p-3">
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <XCircle size={14} className="sm:w-4 sm:h-4 text-red-600" />
-                </div>
-                <h3 className="text-[12px] sm:text-[13px] font-semibold text-red-800">Don't / ရှောင်ရန်</h3>
-              </div>
-            </div>
-            <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-[10px] sm:text-[11px] text-[#1A1A1A]">
-                <li className="flex items-start gap-1.5">
-                  <span className="text-red-600 font-bold mt-0.5">✗</span>
-                  <span><span className="font-medium">လိုအပ်သော အချက်အလက်ကွက်လပ်များကို ဗလာ (အလွတ်) မထားရ</span><span className="text-[#737373]"> (Leave required fields empty)</span></span>
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-red-600 font-bold mt-0.5">✗</span>
-                  <span><span className="font-medium">ဇော်ဂျီနှင့် ယူနီကုဒ် ဖောင့်များကို ရောနှောမသုံးရ</span><span className="text-[#737373]"> (Mix Zawgyi & Unicode fonts)</span></span>
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-red-600 font-bold mt-0.5">✗</span>
-                  <span><span className="font-medium">အထူးပြုလုပ်ထားသော သင်္ကေတ/စာလုံးများကို မသုံးရ</span><span className="text-[#737373]"> (Use special characters)</span></span>
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-red-600 font-bold mt-0.5">✗</span>
-                  <span><span className="font-medium">Excel တွင် ကွက်လပ် (Cells) များကို ပေါင်းစပ်ခြင်း မပြုရ</span><span className="text-[#737373]"> (Merge cells in Excel)</span></span>
-                </li>
-                <li className="flex items-start gap-1.5 sm:col-span-2">
-                  <span className="text-red-600 font-bold mt-0.5">✗</span>
-                  <span><span className="font-medium">ဒေတာအချက်အလက်များကို ထပ်ခါတလဲလဲ (နှစ်ခါ) မထည့်ရ</span><span className="text-[#737373]"> (Add duplicate entries)</span></span>
-                </li>
-              </div>
-            </div>
-          </section>
         </div>
-      )}
 
-      {/* Check Results - TPS 1 Style - Responsive */}
-      {checkResults && (
-        <div className="space-y-3 sm:space-y-4">
-          {/* File Info */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-[#F3F4F6] border border-[#E5E7EB]">
-            <div className="flex items-center gap-2 min-w-0">
-              <FileSpreadsheet size={16} className="text-[#737373] flex-shrink-0 sm:w-[18px] sm:h-[18px]" />
-              <span className="font-medium text-[#1A1A1A] text-[12px] sm:text-[13px] truncate">{fileName}</span>
-            </div>
-            <span className="text-[11px] sm:text-[12px] text-[#737373] sm:ml-auto">
-              {checkResults.totalRows} rows processed
-            </span>
-          </div>
-
-          {/* Summary Card - TPS 1 Style - Responsive */}
-          <div className="border border-[#E5E7EB] overflow-hidden" style={{ borderRadius: '0px' }}>
-            <button
-              onClick={() => toggleSection('summary')}
-              className="w-full flex items-center justify-between p-3 sm:p-4 bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors"
-            >
-              <div className="flex items-center gap-2 sm:gap-3">
-                <FileCheck size={16} className="text-[#1A1A1A] sm:w-[18px] sm:h-[18px]" />
-                <span className="font-semibold text-[#1A1A1A] text-[12px] sm:text-[13px]">Validation Summary</span>
-              </div>
-              {expandedSections.summary ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
-            </button>
-
-            {expandedSections.summary && (
-              <div className="p-3 sm:p-4 space-y-3">
-                {/* Overall Status */}
-                {checkResults.isValid && checkResults.errors.length === 0 && checkResults.warnings.length === 0 ? (
-                  /* ── ALL CLEAR: Lamp-inspired shimmer beam on green theme ── */
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, ease: 'easeOut' }}
-                    className="relative overflow-hidden border border-[#16A34A] bg-[#F0FDF4]"
-                    style={{ borderRadius: '0px' }}
-                  >
-                    {/* ── Lamp glow: conic radial light bloom from top-center ── */}
-                    <motion.div
-                      initial={{ opacity: 0, scaleX: 0.3 }}
-                      animate={{ opacity: [0, 0.55, 0.18] }}
-                      transition={{ duration: 1.1, ease: 'easeOut', delay: 0.1, times: [0, 0.4, 1] }}
-                      className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-[70%] h-20"
-                      style={{
-                        background: 'conic-gradient(from 250deg at 50% 0%, transparent 0deg, #4ADE80 30deg, #86EFAC 60deg, #4ADE80 90deg, transparent 120deg)',
-                        filter: 'blur(18px)',
-                      }}
-                    />
-                    {/* ── Horizontal scan line sweeping left → right ── */}
-                    <motion.div
-                      initial={{ x: '-100%', opacity: 0.9 }}
-                      animate={{ x: '120%', opacity: 0 }}
-                      transition={{ duration: 0.85, ease: 'easeInOut', delay: 0.2 }}
-                      className="pointer-events-none absolute top-0 left-0 w-1/3 h-full"
-                      style={{
-                        background: 'linear-gradient(90deg, transparent, rgba(74,222,128,0.25), transparent)',
-                      }}
-                    />
-                    {/* Left accent bar grows down */}
-                    <div className="flex">
-                      <motion.div
-                        initial={{ scaleY: 0 }}
-                        animate={{ scaleY: 1 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
-                        style={{ transformOrigin: 'top center' }}
-                        className="w-1 flex-shrink-0 bg-[#16A34A]"
-                      />
-                      <div className="flex items-start gap-3 p-4">
-                        {/* Check icon springs in */}
-                        <motion.div
-                          initial={{ scale: 0.4, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ duration: 0.4, delay: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
-                        >
-                          <CheckCircle2 size={20} className="text-[#16A34A] flex-shrink-0 mt-0.5" />
-                        </motion.div>
-                        {/* Text slides in */}
-                        <motion.div
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.38, delay: 0.3, ease: 'easeOut' }}
-                          className="flex-1 min-w-0"
-                        >
-                          <p className="text-[14px] font-semibold text-[#14532D] leading-tight tracking-tight">All Checks Passed</p>
-                          <p className="text-[12px] text-[#166534] mt-0.5">File is clean and ready for database upload</p>
-                          {/* Stats row fades in last */}
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.35, delay: 0.5 }}
-                            className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[#BBF7D0]"
-                          >
-                            <span className="text-[12px] text-[#166534] font-medium tabular-nums">{checkResults.totalRows} rows verified</span>
-                            <span className="text-[#BBF7D0] select-none">|</span>
-                            <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 errors</span>
-                            <span className="text-[#BBF7D0] select-none">|</span>
-                            <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 warnings</span>
-                          </motion.div>
-                        </motion.div>
-                      </div>
+        {/* Guidelines & Requirements Panel */}
+        {!checkResults && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {/* File Requirements */}
+              <section className="border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
+                <div className="border-b border-[#E5E7EB] p-2.5 sm:p-3">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                      <FileCheck size={14} className="sm:w-4 sm:h-4 text-[#1A1A1A]" />
                     </div>
-                  </motion.div>
-                ) : (
-                  <div className={`p-4 flex items-center gap-3 border ${
-                    checkResults.isValid
-                      ? checkResults.warnings.length > 0
-                        ? 'bg-orange-50 border-orange-200'
-                        : 'bg-green-50 border-green-200'
-                      : 'bg-red-50 border-red-200'
-                  }`} style={{ borderRadius: '0px' }}>
-                    {checkResults.isValid ? (
-                      <>
-                        <AlertTriangle size={20} className="text-orange-600" />
-                        <div>
-                          <p className="font-semibold text-orange-800 text-[13px]">Ready with Warnings</p>
-                          <p className="text-[12px] text-orange-700">File can be converted but review warnings first</p>
+                    <h3 className="text-[12px] sm:text-[13px] font-semibold text-[#1A1A1A]">File Requirements</h3>
+                  </div>
+                </div>
+                <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                  <ul className="space-y-1.5 text-[10px] sm:text-[11px] text-[#737373]">
+                    <li>• Excel Sheet တစ်ခုတည်းသာ ပါဝင်ရမည် <span className="text-[#9CA3AF]">(Must only contain one Excel sheet)</span></li>
+                    <li>• ရပ်ကွက် / ရွာ / အုပ်စု တစ်ခုလျှင် ဖိုင်တစ်ဖိုင်စီသာ ခွဲတင်ရမည် <span className="text-[#9CA3AF]">(One file for one ward or village or group)</span></li>
+                    <li>• ဖိုင်တင်သွင်းခြင်းမပြုမီ error အားလုံးကို ရှင်းလင်းထားရမည်ဖြစ်ပြီး မပြည့်စုံသော (သို့) မပြီးပြတ်သေးသော ဒေတာများကို ချန်မထားရပါ <span className="text-[#9CA3AF]">(Files must be clear of all errors and do not leave unfinished or incomplete data)</span></li>
+                    <li>• ဒေတာ၏ ပထမဆုံးစာတန်း (First row) တွင် အိမ်ထောင်စုနံပါတ် (ဥပမာ - ကောင်းတပ်-၁) မဖြစ်မနေ ပါရှိရမည် <span className="text-[#9CA3AF]">(First row must contain household No. e.g., ကောင်းတပ်-၁)</span></li>
+                  </ul>
+                </div>
+              </section>
+
+              {/* DO Section */}
+              <section className="border border-green-200 bg-green-50/20" style={{ borderRadius: '0px' }}>
+                <div className="border-b border-green-200 p-2.5 sm:p-3">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 size={14} className="sm:w-4 sm:h-4 text-green-600" />
+                    </div>
+                    <h3 className="text-[12px] sm:text-[13px] font-semibold text-green-800">Do / လုပ်ရန်</h3>
+                  </div>
+                </div>
+                <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                  <ul className="space-y-1.5 text-[10px] sm:text-[11px] text-[#1A1A1A]">
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span><span className="font-medium">ယူနီကုဒ် မြန်မာဖောင့် အသုံးပြုရန်</span><span className="text-[#737373]"> (Use Unicode Myanmar font)</span></span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span><span className="font-medium">လိုအပ်သော အချက်အလက်ကွက်လပ်များအားလုံး ဖြည့်စွက်ရန်</span><span className="text-[#737373]"> (Fill all required fields)</span></span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span><span className="font-medium">စာမတင်မီ စာလုံးပေါင်းသတ်ပုံကို စစ်ဆေးရန်</span><span className="text-[#737373]"> (Check spelling before upload)</span></span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span><span className="font-medium">ရက်စွဲပုံစံကို ရက်-လ-ခုနှစ် (DD-MM-YYYY) အတိုင်း အသုံးပြုရန်</span><span className="text-[#737373]"> (Use DD-MM-YYYY date format)</span></span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span><span className="font-medium">အိမ်ထောင်စုစာရင်း နံပါတ်များကို မှန်ကန်မှု ရှိ၊ မရှိ စစ်ဆေးရန်</span><span className="text-[#737373]"> (Verify household numbers)</span></span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span>
+                        <span className="font-medium">Ta'ang Land ID နံပါတ်ကို English နံပါတ်ဖြင့် ဖြည့်သွင်းရာတွင် ( No - 01001412000123456 ) အတိုင်း ရိုက်သွင်းရန်</span>
+                        <span className="text-[#737373]"> (Enter Ta'ang Land ID in English digits with "No - " prefix, e.g., No - 01001412000123456)</span>
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span>
+                        <span className="font-medium">ရက်ကွက် ၊ ရွာ နှင့် အုပ်စု အကွက်များဖြည့်သွင်းရာတွင် ( အောင်မေတ္တာ ရပ်ကွက် ၊ အောင်ချမ်းသာ ရွာ ၊ အောင်မင်္ဂလာ အုပ်စု ) ဆိုသော နောက်တွင် ရက်ကွက် ၊ ရွာ နှင့် အုပ်စု မဖြစ်မနေ ထည့်ပေးရန်</span>
+                        <span className="text-[#737373]"> (Must append "ရပ်ကွက်", "ရွာ", or "အုပ်စု" at the end of Ward/Village/Group fields)</span>
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-green-600 font-bold mt-0.5">✓</span>
+                      <span>
+                        <span className="font-medium">မြို့နယ် နှင့် ခရိုင် နောက်တွင်လဲ နမ္မတူ မြို့နယ် ၊ မန်တုံ ခရိုင် ( မြို့နယ် နှင့် ခရိုင် ) ကို မဖြစ်မနေ ထည့်ပေးရန်</span>
+                        <span className="text-[#737373]"> (Must append "မြို့နယ်" and "ခရိုင်" to Township and District fields)</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </section>
+
+              {/* Required Fields */}
+              <section className="border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
+                <div className="border-b border-[#E5E7EB] p-2.5 sm:p-3">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
+                      <LayoutGrid size={14} className="sm:w-4 sm:h-4 text-[#1A1A1A]" />
+                    </div>
+                    <h3 className="text-[12px] sm:text-[13px] font-semibold text-[#1A1A1A]">Required Fields / မဖြစ်မနေဖြည့်သွင်းရန် လိုအပ်သည်</h3>
+                  </div>
+                </div>
+                <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-2 text-[10px] sm:text-[11px]">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                      <span><span className="font-medium">အမည်</span><span className="text-[#737373]"> (Name)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                      <span><span className="font-medium">မွေးသက္ကရာဇ်</span><span className="text-[#737373]"> (Date of birth)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                      <span><span className="font-medium">ကျား/မ</span><span className="text-[#737373]"> (Gender)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                      <span><span className="font-medium">တော်စပ်ပုံ</span><span className="text-[#737373]"> (Households relationship)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                      <span><span className="font-medium">ရပ်ကွက် / ကျေးရွာအုပ်စု / ကျေးရွာ</span><span className="text-[#737373]"> (Ward/Village/Group)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                      <span><span className="font-medium">မြို့နယ်</span><span className="text-[#737373]"> (Township)</span></span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="w-1.5 h-1.5 bg-red-500 flex-shrink-0"></span>
+                      <span><span className="font-medium">ခရိုင်</span><span className="text-[#737373]"> (District)</span></span>
+                    </div>
+                    <div className="flex items-start gap-1.5 sm:gap-2 sm:col-span-2">
+                      <span className="w-1.5 h-1.5 bg-blue-500 flex-shrink-0 mt-1"></span>
+                      <span><span className="font-medium">Previous ID No.</span><span className="text-[#737373]"> (ယခင် စကစ မှတ်ပုံတင် ရှိပါက )</span></span>
+                    </div>
+                    <div className="flex items-start gap-1.5 sm:gap-2 sm:col-span-2">
+                      <span className="w-1.5 h-1.5 bg-blue-500 flex-shrink-0 mt-1"></span>
+                      <span><span className="font-medium">Ta'ang Land ID Number</span><span className="text-[#737373]"> (အကုန် ဖြည့်သွင်းရန် မလို၊ ကတ် ပြုလုပ်သူများ၏ နံပါတ်သာ )</span></span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* DON'T Section - Full Width */}
+            <section className="border border-red-200 bg-red-50/20" style={{ borderRadius: '0px' }}>
+              <div className="border-b border-red-200 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <XCircle size={14} className="sm:w-4 sm:h-4 text-red-600" />
+                  </div>
+                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-red-800">Don't / ရှောင်ရန်</h3>
+                </div>
+              </div>
+              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-[10px] sm:text-[11px] text-[#1A1A1A]">
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span><span className="font-medium">သတ်မှတ်ထားသော ရွာ၊ ရပ်ကွက်၊ အုပ်စု စသည့် အသုံးအနှုန်းမှလွဲ၍ အခြားစကားလုံးများ လုံးဝမသုံးရ</span><span className="text-[#737373]"> (Use only standard "ရွာ", "ရပ်ကွက်", "အုပ်စု" terms)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span>
+                      <span className="font-medium">ရွာ ကို "ကျေးရွာ" ဟု မရေးရ၊ အုပ်စု ကို "ကျေးရွာအုပ်စု / ရွာအုပ်စု" ဟု မရေးရ၊ ရပ်ကွက် ကို "ရပ်ကွပ် / ရက်ကွက်" ဟု လုံးဝ မှားယွင်းစွာ မရေးရပါ</span>
+                      <span className="text-[#737373]"> (Never write "ကျေးရွာ" for village, "ကျေးရွာအုပ်စု" for group, or spell "ရပ်ကွက်" incorrectly)</span>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span>
+                      <span className="font-medium">ရွာ နှင့် အုပ်စု ရေးပါက ကြားတွင် ကော်မာ (,) မှတစ်ပါး အခြားသင်္ကေတများ လုံးဝမသုံးရ</span>
+                      <span className="text-[#737373]"> (Use only English comma (,) to separate Village and Group)</span>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span>
+                      <span className="font-medium">Nationality၊ Resident၊ Religious ကွက်များကို အတိုကောက်များ (ဥပမာ - တအ ×၊ ကရ ×၊ ခရယ ×) ဖြင့် လုံးဝမဖြည့်သွင်းရပါ (တအာင်း ✓၊ ကရင် ✓၊ ခရစ်ယာန် ✓)</span>
+                      <span className="text-[#737373]"> (Do not use abbreviations for Nationality, Resident Status, and Religion fields)</span>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span>
+                      <span className="font-medium">မွေးသက္ကရာဇ် ရေးသားရာတွင် တစ်ခုနှင့်တစ်ခုကြား၌ အစက် ( . ) သာ သုံးရမည် (ဥပမာ - ၁.၃.၁၉၉၉)၊ (-)၊ ( ,) သို့မဟုတ် (/) များ လုံးဝမသုံးရပါ</span>
+                      <span className="text-[#737373]"> (Use only dots (.) as separators in Date of Birth field)</span>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span><span className="font-medium">လိုအပ်သော အချက်အလက်ကွက်လပ်များကို ဗလာ (အလွတ်) မထားရ</span><span className="text-[#737373]"> (Leave required fields empty)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span><span className="font-medium">ဇော်ဂျီနှင့် ယူနီကုဒ် ဖောင့်များကို ရောနှောမသုံးရ</span><span className="text-[#737373]"> (Mix Zawgyi & Unicode fonts)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span><span className="font-medium">Excel တွင် ကွက်လပ် (Cells) များကို ပေါင်းစပ်ခြင်း မပြုရ</span><span className="text-[#737373]"> (Merge cells in Excel)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5 sm:col-span-2">
+                    <span className="text-red-600 font-bold mt-0.5">✗</span>
+                    <span><span className="font-medium">ဒေတာအချက်အလက်များကို ထပ်ခါတလဲလဲ (နှစ်ခါ) မထည့်ရ</span><span className="text-[#737373]"> (Add duplicate entries)</span></span>
+                  </li>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* Check Results - TPS 1 Style - Responsive */}
+        {checkResults && (
+          <div className="space-y-3 sm:space-y-4">
+            {/* File Info */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-white border-2 border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]" style={{ borderRadius: '0px' }}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-1 bg-[#F3F4F6] border border-[#E5E7EB] flex-shrink-0">
+                  <FileSpreadsheet size={16} className="text-[#1A1A1A]" />
+                </div>
+                <span className="font-bold text-[#1A1A1A] text-[12px] sm:text-[13px] truncate">{fileName}</span>
+              </div>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-[#2563EB] bg-[#EFF6FF] border border-[#BFDBFE] px-2 py-0.5 sm:ml-auto uppercase tracking-wider" style={{ borderRadius: '0px' }}>
+                {checkResults.totalRows} rows processed
+              </span>
+            </div>
+
+            {/* Summary Card - TPS 1 Style - Responsive */}
+            <div className="border border-[#E5E7EB] overflow-hidden" style={{ borderRadius: '0px' }}>
+              <button
+                onClick={() => toggleSection('summary')}
+                className="w-full flex items-center justify-between p-3 sm:p-4 bg-[#F3F4F6] hover:bg-[#E5E7EB] transition-colors"
+              >
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <FileCheck size={16} className="text-[#1A1A1A] sm:w-[18px] sm:h-[18px]" />
+                  <span className="font-semibold text-[#1A1A1A] text-[12px] sm:text-[13px]">စစ်ဆေးမှု ရလဒ်အကျဉ်းချုပ် (Validation Summary)</span>
+                </div>
+                {expandedSections.summary ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
+              </button>
+
+              {expandedSections.summary && (
+                <div className="p-3 sm:p-4 space-y-3">
+                  {/* Overall Status */}
+                  {checkResults.isValid && checkResults.errors.length === 0 && checkResults.warnings.length === 0 ? (
+                    /* ── ALL CLEAR: Lamp-inspired shimmer beam on green theme ── */
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.45, ease: 'easeOut' }}
+                      className="relative overflow-hidden border border-[#16A34A] bg-[#F0FDF4]"
+                      style={{ borderRadius: '0px' }}
+                    >
+                      {/* ── Lamp glow: conic radial light bloom from top-center ── */}
+                      <motion.div
+                        initial={{ opacity: 0, scaleX: 0.3 }}
+                        animate={{ opacity: [0, 0.55, 0.18] }}
+                        transition={{ duration: 1.1, ease: 'easeOut', delay: 0.1, times: [0, 0.4, 1] }}
+                        className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-[70%] h-20"
+                        style={{
+                          background: 'conic-gradient(from 250deg at 50% 0%, transparent 0deg, #4ADE80 30deg, #86EFAC 60deg, #4ADE80 90deg, transparent 120deg)',
+                          filter: 'blur(18px)',
+                        }}
+                      />
+                      {/* ── Horizontal scan line sweeping left → right ── */}
+                      <motion.div
+                        initial={{ x: '-100%', opacity: 0.9 }}
+                        animate={{ x: '120%', opacity: 0 }}
+                        transition={{ duration: 0.85, ease: 'easeInOut', delay: 0.2 }}
+                        className="pointer-events-none absolute top-0 left-0 w-1/3 h-full"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent, rgba(74,222,128,0.25), transparent)',
+                        }}
+                      />
+                      {/* Left accent bar grows down */}
+                      <div className="flex">
+                        <motion.div
+                          initial={{ scaleY: 0 }}
+                          animate={{ scaleY: 1 }}
+                          transition={{ duration: 0.4, ease: 'easeOut' }}
+                          style={{ transformOrigin: 'top center' }}
+                          className="w-1 flex-shrink-0 bg-[#16A34A]"
+                        />
+                        <div className="flex items-start gap-3 p-4">
+                          {/* Check icon springs in */}
+                          <motion.div
+                            initial={{ scale: 0.4, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.4, delay: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+                          >
+                            <CheckCircle2 size={20} className="text-[#16A34A] flex-shrink-0 mt-0.5" />
+                          </motion.div>
+                          {/* Text slides in */}
+                          <motion.div
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.38, delay: 0.3, ease: 'easeOut' }}
+                            className="flex-1 min-w-0"
+                          >
+                            <p className="text-[14px] font-semibold text-[#14532D] leading-tight tracking-tight">All Checks Passed</p>
+                            <p className="text-[12px] text-[#166534] mt-0.5">File is clean and ready for database upload</p>
+                            {/* Stats row fades in last */}
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.35, delay: 0.5 }}
+                              className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[#BBF7D0]"
+                            >
+                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">{checkResults.totalRows} rows verified</span>
+                              <span className="text-[#BBF7D0] select-none">|</span>
+                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 errors</span>
+                              <span className="text-[#BBF7D0] select-none">|</span>
+                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 warnings</span>
+                            </motion.div>
+                          </motion.div>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle size={20} className="text-red-600" />
-                        <div>
-                          <p className="font-semibold text-red-800 text-[13px]">Validation Failed</p>
-                          <p className="text-[12px] text-red-700">Fix errors in Excel before converting</p>
-                        </div>
-                      </>
-                    )}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div className={`p-4 flex items-center gap-3 border ${checkResults.isValid
+                        ? checkResults.warnings.length > 0
+                          ? 'bg-orange-50 border-orange-200'
+                          : 'bg-green-50 border-green-200'
+                        : 'bg-red-50 border-red-200'
+                      }`} style={{ borderRadius: '0px' }}>
+                      {checkResults.isValid ? (
+                        <>
+                          <AlertTriangle size={20} className="text-orange-600" />
+                          <div>
+                            <p className="font-semibold text-orange-800 text-[13px]">သတိပေးချက်များရှိပါသည် (Ready with Warnings)</p>
+                            <p className="text-[12px] text-orange-700">ဖိုင်အမျိုးအစား ပြောင်းလဲနိုင်သော်လည်း သတိပေးချက်များကို ဦးစွာစစ်ဆေးပါ (Review warnings first)</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle size={20} className="text-red-600" />
+                          <div>
+                            <p className="font-semibold text-red-800 text-[13px]">စစ်ဆေးမှု မအောင်မြင်ပါ (Validation Failed)</p>
+                            <p className="text-[12px] text-red-700">ဖိုင်အမျိုးအစားမပြောင်းလဲမီ Excel ထဲရှိ အမှားများကို ပြင်ဆင်ပါ (Fix errors in Excel before converting)</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Checklist Items - TPS 1 Style - Responsive */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <ChecklistItem
+                      icon={Table}
+                      label="စုစုပေါင်း စာကြောင်းအရေအတွက် (Total Rows)"
+                      status="pass"
+                      count={checkResults.totalRows}
+                    />
+                    <ChecklistItem
+                      icon={FileCheck}
+                      label="မှန်ကန်သော စာကြောင်းအရေအတွက် (Valid Rows)"
+                      status={checkResults.validRows.length === checkResults.totalRows ? 'pass' : 'warning'}
+                      count={checkResults.validRows.length}
+                    />
+                    <ChecklistItem
+                      icon={AlertCircle}
+                      label="အမှားများ (မဖြစ်မနေပြင်ဆင်ရန်) (Errors)"
+                      status={checkResults.errors.length === 0 ? 'pass' : 'fail'}
+                      count={checkResults.errors.length}
+                    />
+                    <ChecklistItem
+                      icon={AlertTriangle}
+                      label="သတိပေးချက်များ (ပြန်လည်စစ်ဆေးရန်) (Warnings)"
+                      status={checkResults.warnings.length === 0 ? 'pass' : 'warning'}
+                      count={checkResults.warnings.length}
+                    />
+                  </div>
+
+
+                </div>
+              )}
+            </div>
+
+            {/* Errors Section - TPS 1 Style - Responsive */}
+            {checkResults.errors.length > 0 && (
+              <div className="border border-red-200 overflow-hidden" style={{ borderRadius: '0px' }}>
+                <button
+                  onClick={() => toggleSection('errors')}
+                  className="w-full flex items-center justify-between p-3 sm:p-4 bg-red-50 hover:bg-red-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <AlertCircle size={16} className="text-red-600 sm:w-[18px] sm:h-[18px]" />
+                    <span className="font-semibold text-red-800 text-[12px] sm:text-[13px]">အမှားများ (Errors) ({checkResults.errors.length})</span>
+                    <span className="text-[9px] sm:text-[10px] text-red-600 bg-red-100 px-1.5 sm:px-2 py-0.5">မဖြစ်မနေပြင်ဆင်ရန် (Must Fix)</span>
+                  </div>
+                  {expandedSections.errors ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
+                </button>
+
+                {expandedSections.errors && (
+                  <div className="p-2 sm:p-4 overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <table className="w-full text-left border-collapse min-w-[600px]">
+                      <thead className="bg-red-50 border-b border-red-100 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700 w-16 sm:w-20">Excel Row</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Name</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Missing Fields</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Myanmar Issues</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E5E7EB]">
+                        {checkResults.errors.map((err, idx) => (
+                          <tr key={idx} className="hover:bg-red-50/30">
+                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-bold text-[#1A1A1A]">#{err.rowNumber}</td>
+                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{err.data.name || 'N/A'}</td>
+                            <td className="px-2 sm:px-3 py-2">
+                              <div className="flex flex-wrap gap-1">
+                                {err.missingFields?.map((field, i) => (
+                                  <span key={i} className="text-[9px] sm:text-[10px] bg-red-100 text-red-700 px-1.5 sm:px-2 py-0.5" style={{ borderRadius: '0px' }}>
+                                    {field}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-2 sm:px-3 py-2">
+                              {err.spellingIssues?.map((issue, i) => (
+                                <div key={i} className="text-[9px] sm:text-[10px] text-orange-700 mb-1">
+                                  {issue.field}: "{issue.value}" ({issue.issue})
+                                </div>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
-
-                {/* Checklist Items - TPS 1 Style - Responsive */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <ChecklistItem
-                    icon={Table}
-                    label="Total Rows"
-                    status="pass"
-                    count={checkResults.totalRows}
-                  />
-                  <ChecklistItem
-                    icon={FileCheck}
-                    label="Valid Rows"
-                    status={checkResults.validRows.length === checkResults.totalRows ? 'pass' : 'warning'}
-                    count={checkResults.validRows.length}
-                  />
-                  <ChecklistItem
-                    icon={AlertCircle}
-                    label="Errors (Must Fix)"
-                    status={checkResults.errors.length === 0 ? 'pass' : 'fail'}
-                    count={checkResults.errors.length}
-                  />
-                  <ChecklistItem
-                    icon={AlertTriangle}
-                    label="Warnings (Review)"
-                    status={checkResults.warnings.length === 0 ? 'pass' : 'warning'}
-                    count={checkResults.warnings.length}
-                  />
-                </div>
-
-                {/* Myanmar Text Check - TPS 1 Style - Responsive */}
-                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-[#F3F4F6] border border-[#E5E7EB]">
-                  <p className="text-[11px] sm:text-[12px] font-semibold text-[#1A1A1A] mb-2">Myanmar Text Validation</p>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-1 bg-white border border-[#E5E7EB] text-[10px] sm:text-[11px] text-[#737373]">
-                      <CheckCircle2 size={10} className="text-green-600 sm:w-3 sm:h-3" />
-                      Zawgyi → Unicode
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-1 bg-white border border-[#E5E7EB] text-[10px] sm:text-[11px] text-[#737373]">
-                      <CheckCircle2 size={10} className="text-green-600 sm:w-3 sm:h-3" />
-                      Duplicate medial check
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-1 bg-white border border-[#E5E7EB] text-[10px] sm:text-[11px] text-[#737373]">
-                      <CheckCircle2 size={10} className="text-green-600 sm:w-3 sm:h-3" />
-                      Invalid sequence check
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-1 bg-white border border-[#E5E7EB] text-[10px] sm:text-[11px] text-[#737373]">
-                      <CheckCircle2 size={10} className="text-green-600 sm:w-3 sm:h-3" />
-                      Mixed encoding check
-                    </span>
-                  </div>
-                </div>
               </div>
             )}
-          </div>
 
-          {/* Errors Section - TPS 1 Style - Responsive */}
-          {checkResults.errors.length > 0 && (
-            <div className="border border-red-200 overflow-hidden" style={{ borderRadius: '0px' }}>
-              <button
-                onClick={() => toggleSection('errors')}
-                className="w-full flex items-center justify-between p-3 sm:p-4 bg-red-50 hover:bg-red-100 transition-colors"
-              >
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <AlertCircle size={16} className="text-red-600 sm:w-[18px] sm:h-[18px]" />
-                  <span className="font-semibold text-red-800 text-[12px] sm:text-[13px]">Errors ({checkResults.errors.length})</span>
-                  <span className="text-[9px] sm:text-[10px] text-red-600 bg-red-100 px-1.5 sm:px-2 py-0.5">Must Fix</span>
-                </div>
-                {expandedSections.errors ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
-              </button>
+            {/* Warnings Section - TPS 1 Style - Responsive */}
+            {checkResults.warnings.length > 0 && (
+              <div className="border border-orange-200 overflow-hidden" style={{ borderRadius: '0px' }}>
+                <button
+                  onClick={() => toggleSection('warnings')}
+                  className="w-full flex items-center justify-between p-3 sm:p-4 bg-orange-50 hover:bg-orange-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <AlertTriangle size={16} className="text-orange-600 sm:w-[18px] sm:h-[18px]" />
+                    <span className="font-semibold text-orange-800 text-[12px] sm:text-[13px]">သတိပေးချက်များ (Warnings) ({checkResults.warnings.length})</span>
+                    <span className="text-[9px] sm:text-[10px] text-orange-600 bg-orange-100 px-1.5 sm:px-2 py-0.5">ပြန်လည်စစ်ဆေးရန် (Review)</span>
+                  </div>
+                  {expandedSections.warnings ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
+                </button>
 
-              {expandedSections.errors && (
-                <div className="p-2 sm:p-4 overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[600px]">
-                    <thead className="bg-red-50 border-b border-red-100">
-                      <tr>
-                        <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700 w-16 sm:w-20">Excel Row</th>
-                        <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Name</th>
-                        <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Missing Fields</th>
-                        <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Myanmar Issues</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E5E7EB]">
-                      {checkResults.errors.map((err, idx) => (
-                        <tr key={idx} className="hover:bg-red-50/30">
-                          <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-bold text-[#1A1A1A]">#{err.rowNumber}</td>
-                          <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{err.data.name || 'N/A'}</td>
-                          <td className="px-2 sm:px-3 py-2">
-                            <div className="flex flex-wrap gap-1">
-                              {err.missingFields?.map((field, i) => (
-                                <span key={i} className="text-[9px] sm:text-[10px] bg-red-100 text-red-700 px-1.5 sm:px-2 py-0.5" style={{ borderRadius: '0px' }}>
-                                  {field}
-                                </span>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-3 py-2">
-                            {err.spellingIssues?.map((issue, i) => (
-                              <div key={i} className="text-[9px] sm:text-[10px] text-orange-700 mb-1">
-                                {issue.field}: "{issue.value}" ({issue.issue})
-                              </div>
-                            ))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Warnings Section - TPS 1 Style - Responsive */}
-          {checkResults.warnings.length > 0 && (
-            <div className="border border-orange-200 overflow-hidden" style={{ borderRadius: '0px' }}>
-              <button
-                onClick={() => toggleSection('warnings')}
-                className="w-full flex items-center justify-between p-3 sm:p-4 bg-orange-50 hover:bg-orange-100 transition-colors"
-              >
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <AlertTriangle size={16} className="text-orange-600 sm:w-[18px] sm:h-[18px]" />
-                  <span className="font-semibold text-orange-800 text-[12px] sm:text-[13px]">Warnings ({checkResults.warnings.length})</span>
-                  <span className="text-[9px] sm:text-[10px] text-orange-600 bg-orange-100 px-1.5 sm:px-2 py-0.5">Review</span>
-                </div>
-                {expandedSections.warnings ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
-              </button>
-
-              {expandedSections.warnings && (
-                <div className="p-2 sm:p-4 overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[500px]">
-                    <thead className="bg-orange-50 border-b border-orange-100">
-                      <tr>
-                        <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700 w-16 sm:w-20">Excel Row</th>
-                        <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">Name</th>
-                        <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">Myanmar Text Issues</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E5E7EB]">
-                      {checkResults.warnings.map((warn, idx) => (
-                        <tr key={idx} className="hover:bg-orange-50/30">
-                          <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-bold text-[#1A1A1A]">#{warn.rowNumber}</td>
-                          <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{warn.data.name || 'N/A'}</td>
-                          <td className="px-2 sm:px-3 py-2">
-                            {warn.spellingIssues.map((issue, i) => (
-                              <div key={i} className="text-[9px] sm:text-[10px] text-orange-700 mb-1">
-                                {issue.field}: "{issue.value}" ({issue.issue})
-                              </div>
-                            ))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Valid Rows Preview - TPS 1 Style - Responsive */}
-          {checkResults.validRows.length > 0 && (
-            <div className="border border-green-200 overflow-hidden" style={{ borderRadius: '0px' }}>
-              <button
-                onClick={() => toggleSection('valid')}
-                className="w-full flex items-center justify-between p-3 sm:p-4 bg-green-50 hover:bg-green-100 transition-colors"
-              >
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <CheckCircle2 size={16} className="text-green-600 sm:w-[18px] sm:h-[18px]" />
-                  <span className="font-semibold text-green-800 text-[12px] sm:text-[13px]">Valid Rows Preview ({checkResults.validRows.length})</span>
-                </div>
-                {expandedSections.valid ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
-              </button>
-
-              {expandedSections.valid && (
-                <div className="p-2 sm:p-4 overflow-x-auto max-h-64 overflow-y-auto">
-                  <table className="w-full text-left border-collapse text-[11px] sm:text-[12px] min-w-[400px]">
-                    <thead className="bg-green-50 border-b border-green-100 sticky top-0">
-                      <tr>
-                        <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Household</th>
-                        <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Name</th>
-                        <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Gender</th>
-                        <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Location</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#E5E7EB]">
-                      {checkResults.validRows.slice(0, 20).map((row, idx) => (
-                        <tr key={idx} className="hover:bg-green-50/30">
-                          <td className="px-1.5 sm:px-2 py-1.5 text-[#1A1A1A]">{row.household_no}</td>
-                          <td className="px-1.5 sm:px-2 py-1.5 text-[#1A1A1A] font-medium truncate max-w-[100px] sm:max-w-[150px]">{row.name}</td>
-                          <td className="px-1.5 sm:px-2 py-1.5 text-[#737373]">{row.gender}</td>
-                          <td className="px-1.5 sm:px-2 py-1.5 text-[#737373] text-[10px] sm:text-[11px]">{row.township}, {row.district}</td>
-                        </tr>
-                      ))}
-                      {checkResults.validRows.length > 20 && (
+                {expandedSections.warnings && (
+                  <div className="p-2 sm:p-4 overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <table className="w-full text-left border-collapse min-w-[500px]">
+                      <thead className="bg-orange-50 border-b border-orange-100 sticky top-0 z-10">
                         <tr>
-                          <td colSpan={4} className="px-1.5 sm:px-2 py-2 text-center text-[10px] sm:text-[11px] text-[#737373]">
-                            ... and {checkResults.validRows.length - 20} more rows
-                          </td>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700 w-16 sm:w-20">Excel Row</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">Name</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">Myanmar Text Issues</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
+                      </thead>
+                      <tbody className="divide-y divide-[#E5E7EB]">
+                        {checkResults.warnings.map((warn, idx) => (
+                          <tr key={idx} className="hover:bg-orange-50/30">
+                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-bold text-[#1A1A1A]">#{warn.rowNumber}</td>
+                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{warn.data.name || 'N/A'}</td>
+                            <td className="px-2 sm:px-3 py-2">
+                              {warn.spellingIssues.map((issue, i) => (
+                                <div key={i} className="text-[9px] sm:text-[10px] text-orange-700 mb-1">
+                                  {issue.field}: "{issue.value}" ({issue.issue})
+                                </div>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Action Buttons - TPS 1 Style - Responsive */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-[#E5E7EB]">
+            {/* Valid Rows Preview - TPS 1 Style - Responsive */}
             {checkResults.validRows.length > 0 && (
-              <button
-                onClick={downloadCorrectedCSV}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-[#1A1A1A] text-white border border-[#1A1A1A] hover:bg-white hover:text-[#1A1A1A] transition-colors text-[11px] sm:text-[12px] font-medium w-full sm:w-auto"
-                style={{ borderRadius: '0px' }}
-              >
-                <Download size={14} className="sm:w-4 sm:h-4" />
-                Download Corrected CSV
-              </button>
+              <div className="border border-green-200 overflow-hidden" style={{ borderRadius: '0px' }}>
+                <button
+                  onClick={() => toggleSection('valid')}
+                  className="w-full flex items-center justify-between p-3 sm:p-4 bg-green-50 hover:bg-green-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <CheckCircle2 size={16} className="text-green-600 sm:w-[18px] sm:h-[18px]" />
+                    <span className="font-semibold text-green-800 text-[12px] sm:text-[13px]">မှန်ကန်သော စာကြောင်းများ ကြည့်ရှုရန် (Valid Rows Preview) ({checkResults.validRows.length})</span>
+                  </div>
+                  {expandedSections.valid ? <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" />}
+                </button>
+
+                {expandedSections.valid && (
+                  <div className="p-2 sm:p-4 overflow-x-auto max-h-64 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-[11px] sm:text-[12px] min-w-[400px]">
+                      <thead className="bg-green-50 border-b border-green-100 sticky top-0">
+                        <tr>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Household</th>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Name</th>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Gender</th>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Location</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E5E7EB]">
+                        {checkResults.validRows.slice(0, 20).map((row, idx) => (
+                          <tr key={idx} className="hover:bg-green-50/30">
+                            <td className="px-1.5 sm:px-2 py-1.5 text-[#1A1A1A]">{row.household_no}</td>
+                            <td className="px-1.5 sm:px-2 py-1.5 text-[#1A1A1A] font-medium truncate max-w-[100px] sm:max-w-[150px]">{row.name}</td>
+                            <td className="px-1.5 sm:px-2 py-1.5 text-[#737373]">{row.gender}</td>
+                            <td className="px-1.5 sm:px-2 py-1.5 text-[#737373] text-[10px] sm:text-[11px]">{row.township}, {row.district}</td>
+                          </tr>
+                        ))}
+                        {checkResults.validRows.length > 20 && (
+                          <tr>
+                            <td colSpan={4} className="px-1.5 sm:px-2 py-2 text-center text-[10px] sm:text-[11px] text-[#737373]">
+                              ... and {checkResults.validRows.length - 20} more rows
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             )}
 
-            {(checkResults.errors.length > 0 || checkResults.warnings.length > 0) && (
+            {/* Action Buttons - TPS 1 Style - Responsive */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-[#E5E7EB]">
+
+
+              {(checkResults.errors.length > 0 || checkResults.warnings.length > 0) && (
+                <button
+                  onClick={downloadErrorReport}
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white text-[#1A1A1A] border border-[#E5E7EB] hover:bg-[#F3F4F6] transition-colors text-[11px] sm:text-[12px] font-medium w-full sm:w-auto"
+                  style={{ borderRadius: '0px' }}
+                >
+                  <FileWarning size={14} className="sm:w-4 sm:h-4" />
+                  အမှားအယွင်း အစီရင်ခံစာကို ဒေါင်းလုဒ်လုပ်ရန် (Download Error Report)
+                </button>
+              )}
+
               <button
-                onClick={downloadErrorReport}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white text-[#1A1A1A] border border-[#E5E7EB] hover:bg-[#F3F4F6] transition-colors text-[11px] sm:text-[12px] font-medium w-full sm:w-auto"
+                onClick={resetChecker}
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white text-[#1A1A1A] border border-[#E5E7EB] hover:bg-[#F3F4F6] transition-colors text-[11px] sm:text-[12px] font-medium w-full sm:w-auto sm:ml-auto"
                 style={{ borderRadius: '0px' }}
               >
-                <FileWarning size={14} className="sm:w-4 sm:h-4" />
-                Download Error Report
+                <Upload size={14} className="sm:w-4 sm:h-4" />
+                အခြားဖိုင်တစ်ခု ထပ်မံစစ်ဆေးရန် (Check Another File)
               </button>
-            )}
-
-            <button
-              onClick={resetChecker}
-              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white text-[#1A1A1A] border border-[#E5E7EB] hover:bg-[#F3F4F6] transition-colors text-[11px] sm:text-[12px] font-medium w-full sm:w-auto sm:ml-auto"
-              style={{ borderRadius: '0px' }}
-            >
-              <Upload size={14} className="sm:w-4 sm:h-4" />
-              Check Another File
-            </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

@@ -132,10 +132,30 @@ input::placeholder, textarea::placeholder {
 }
 
 /* ── Scrollbar ────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #E5E7EB; }
-::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #F3F4F6;
+  border-left: 1px solid #E5E7EB;
+  border-right: 1px solid #E5E7EB;
+}
+::-webkit-scrollbar-thumb {
+  background: #A3A3A3;
+  border: 2px solid #F3F4F6;
+  min-height: 120px;
+  min-width: 120px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+}
+
+/* Firefox scrollbar compatibility */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: #A3A3A3 #F3F4F6;
+}
 
 /* ── Animations ─────────────────────────────────────────── */
 @keyframes fadeIn {
