@@ -479,7 +479,7 @@ const playNotificationSound = (isSuccess) => {
         osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
 
         gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
-        gainNode.gain.linearRampToValueAtTime(0.48, ctx.currentTime + startTimes[i] + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0.90, ctx.currentTime + startTimes[i] + 0.01);
         gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
 
         osc.connect(gainNode);
