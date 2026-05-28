@@ -434,6 +434,66 @@ const MYANMAR_FIELDS = [
   { key: 'resident_status', label: 'Resident Status' },
 ];
 
+// ============ NOTIFICATION SOUNDS ============
+const playNotificationSound = (isSuccess) => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    if (isSuccess) {
+      // Ascending premium success chime arpeggio (C5 -> E5 -> G5 -> C6)
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      const startTimes = [0, 0.08, 0.16, 0.24];
+      const durations = [0.3, 0.3, 0.3, 0.4];
+
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
+
+        // Smooth volume envelope with decay
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
+        gainNode.gain.linearRampToValueAtTime(0.12, ctx.currentTime + startTimes[i] + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
+
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(ctx.currentTime + startTimes[i]);
+        osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
+      });
+    } else {
+      // Soft warnings double flat beep tone (descending A3 -> F3 warning pitch)
+      const notes = [220.00, 185.00];
+      const startTimes = [0, 0.15];
+      const durations = [0.15, 0.25];
+
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        osc.type = 'triangle'; // Soft triangle beep
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTimes[i]);
+
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + startTimes[i]);
+        gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + startTimes[i] + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTimes[i] + durations[i]);
+
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        osc.start(ctx.currentTime + startTimes[i]);
+        osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
+      });
+    }
+  } catch (err) {
+    console.warn("Audio playback failed: ", err);
+  }
+};
+
 // ============ MAIN COMPONENT ============
 
 const ExcelChecker = () => {
@@ -648,6 +708,13 @@ const ExcelChecker = () => {
 
       const results = processData(jsonData);
       setCheckResults(results);
+
+      // Play success chime or error warning sound
+      if (results.errors.length === 0) {
+        playNotificationSound(true);
+      } else {
+        playNotificationSound(false);
+      }
 
       // Auto-expand sections based on results
       setExpandedSections({
