@@ -811,7 +811,11 @@ const ExcelChecker = () => {
   const downloadErrorReport = () => {
     if (!checkResults || (checkResults.errors.length === 0 && checkResults.warnings.length === 0)) return;
 
-    const reportLines = [
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Create summary worksheet
+    const summaryData = [
       ['HDC - Ta\'ang Household Database Checker - Error Report'],
       ['Generated:', new Date().toLocaleString()],
       ['Original File:', fileName],
@@ -821,40 +825,68 @@ const ExcelChecker = () => {
       ['Errors:', checkResults.errors.length],
       ['Warnings:', checkResults.warnings.length],
       ['Valid Rows:', checkResults.validRows.length],
-      [''],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    
+    // Set column widths for summary
+    wsSummary['!cols'] = [
+      { wch: 30 }, // Column A
+      { wch: 20 }, // Column B
     ];
 
+    // Add summary sheet to workbook
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+    // Create errors worksheet if there are errors
     if (checkResults.errors.length > 0) {
-      reportLines.push(['ERRORS (Must Fix)'], ['Row Number', 'Name', 'Missing Fields', 'Myanmar Text Issues']);
-      checkResults.errors.forEach(err => {
-        reportLines.push([
+      const errorData = [
+        ['ERRORS (Must Fix)'],
+        ['Row Number', 'Name', 'Missing Fields', 'Myanmar Text Issues'],
+        ...checkResults.errors.map(err => [
           err.rowNumber,
           err.data.name || 'N/A',
           err.missingFields?.join(', ') || '',
           err.spellingIssues?.map(s => `${s.field}: "${s.value}" (${s.issue})`).join('; ') || ''
-        ]);
-      });
-      reportLines.push(['']);
+        ])
+      ];
+      const wsErrors = XLSX.utils.aoa_to_sheet(errorData);
+      
+      // Set column widths for errors
+      wsErrors['!cols'] = [
+        { wch: 12 }, // Row Number
+        { wch: 30 }, // Name
+        { wch: 25 }, // Missing Fields
+        { wch: 50 }, // Myanmar Text Issues
+      ];
+      
+      XLSX.utils.book_append_sheet(wb, wsErrors, 'Errors');
     }
 
+    // Create warnings worksheet if there are warnings
     if (checkResults.warnings.length > 0) {
-      reportLines.push(['WARNINGS (Review Recommended)'], ['Row Number', 'Name', 'Myanmar Text Issues']);
-      checkResults.warnings.forEach(warn => {
-        reportLines.push([
+      const warningData = [
+        ['WARNINGS (Review Recommended)'],
+        ['Row Number', 'Name', 'Myanmar Text Issues'],
+        ...checkResults.warnings.map(warn => [
           warn.rowNumber,
           warn.data.name || 'N/A',
           warn.spellingIssues.map(s => `${s.field}: "${s.value}" (${s.issue})`).join('; ')
-        ]);
-      });
+        ])
+      ];
+      const wsWarnings = XLSX.utils.aoa_to_sheet(warningData);
+      
+      // Set column widths for warnings
+      wsWarnings['!cols'] = [
+        { wch: 12 }, // Row Number
+        { wch: 30 }, // Name
+        { wch: 50 }, // Myanmar Text Issues
+      ];
+      
+      XLSX.utils.book_append_sheet(wb, wsWarnings, 'Warnings');
     }
 
-    const csv = Papa.unparse(reportLines);
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `error_report_${fileName.replace(/\.[^/.]+$/, '')}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    // Write and download the Excel file
+    XLSX.writeFile(wb, `error_report_${fileName.replace(/\.[^/.]+$/, '')}.xlsx`);
   };
 
   // Reset checker

@@ -14,7 +14,7 @@ function App() {
             />
             <div className="border-l border-[#E5E7EB] pl-3 sm:pl-4">
               <div className="text-[13px] sm:text-[15px] font-bold text-[#1A1A1A] tracking-wide uppercase leading-tight">HDC</div>
-              <div className="text-[9px] sm:text-[10px] text-[#737373] leading-tight">Feature In The Ta'ang Population System</div>
+              <div className="text-[9px] sm:text-[10px] text-[#737373] leading-tight">Household Database Checker  </div>
             </div>
           </div>
           <div className="text-[9px] sm:text-[10px] text-[#737373] uppercase tracking-wider">v1.0</div>
