@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import ExcelChecker from './components/ExcelChecker'
 
 function App() {
@@ -28,12 +29,19 @@ function App() {
           <div className="border-b border-[#E5E7EB] pb-3 sm:pb-4">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
               <div>
-                <p className="text-[9px] sm:text-[10px] text-[#737373] uppercase tracking-wider mb-1">အိမ်ထောင်စုများ database ထဲ မသွင်းရသေးခင် မှန်မှန်ကန်ကန်ရောက်ရှိရန်  စစ်ဆေး ခြင်းအတွက် အသုံးပြုသော Software ဖြစ်ပါသည်</p>
+                <motion.p 
+                  className="text-[10px] sm:text-[11px] text-red-600 font-bold uppercase tracking-wider mb-1 bg-red-50 border border-red-200 px-3 py-2 w-full block"
+                  animate={{ 
+                    boxShadow: ['0 0 0 0 rgba(220, 38, 38, 0)', '0 0 0 6px rgba(220, 38, 38, 0.2)', '0 0 0 0 rgba(220, 38, 38, 0)']
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: 'loop'
+                  }}
+                >အိမ်ထောင်စုများ database ထဲ မသွင်းရသေးမှီ သတ်မှတ်ထားသော စံနှုန်းများ (Excel standard frame )အတိုင်း မှန်မှန်ကန်ကန်ရောက်ရှိစေရန်  စစ်ဆေး ခြင်းအတွက် အသုံးပြုသော Software ဖြစ်ပါသည်...အသုံးမပြုမှီ လိုက်နာရမည့်အချက်များကို သေချာရှင်းလင်းစွာ ဖတ်ရှုလိုက်နာပါ။</motion.p>
                 <h1 className="text-[20px] sm:text-[24px] lg:text-[28px] font-semibold text-[#1A1A1A] tracking-tight">Excel Checker</h1>
                 <p className="text-[11px] sm:text-[12px] text-[#737373] mt-1">Validate Excel/CSV files before database import</p>
-              </div>
-              <div className="hidden lg:block">
-                <p className="text-[11px] text-[#737373]">Guidelines & Requirements</p>
               </div>
             </div>
           </div>

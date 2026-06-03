@@ -6,7 +6,7 @@ import { zg2uni } from 'rabbit-node';
 import {
   AlertCircle, CheckCircle2, Upload, FileSpreadsheet,
   Loader2, Download, FileCheck, AlertTriangle, ChevronDown,
-  ChevronUp, FileWarning, Table, ClipboardCheck, XCircle, LayoutGrid
+  ChevronUp, FileWarning, Table, ClipboardCheck, XCircle, LayoutGrid, FileText
 } from 'lucide-react';
 
 // ============ MYANMAR TEXT UTILITIES (Matching CsvUploader ruleset) ============
@@ -353,12 +353,12 @@ const formatHouseholdNo = (value) => {
 
 // ── Strict validators ──
 const validateHouseholdNo = (value) => {
-  if (!value || typeof value !== 'string' || value.trim() === '') return 'Household No. is required';
+  if (!value || typeof value !== 'string' || value.trim() === '') return 'အိမ်ထောင်စုနံပါတ် မဖြစ်မနေလိုအပ်ပါသည်';
   const str = value.trim();
-  if (str === 'UNKNOWN' || str === 'UNKNOWN-1') return 'Household No. cannot be "UNKNOWN"';
-  if (/[/.,၊]/.test(str)) return 'Separators like /, ., or , are not allowed. Use hyphen (-) only';
+  if (str === 'UNKNOWN' || str === 'UNKNOWN-1') return 'အိမ်ထောင်စုနံပါတ်သည် "UNKNOWN" ဖြစ်လို့မရပါ';
+  if (/[/.,၊]/.test(str)) return 'ခွဲပြားခြင်း အမှတ်များဖြစ်သော /, ., နှင့် , များကို မသုံးရပါ - ဟိုင်ဖင် (-) သာသုံးပါ';
   const hhNoRegex = /^[a-zA-Z\u1000-\u109F\s]+(?:\s*[-–—]\s*)[0-9၀-၉]+$/;
-  if (!hhNoRegex.test(str)) return 'Invalid format — must follow "Name-Number" or "Name - Number" (e.g., ကောင်းတပ်-၁)';
+  if (!hhNoRegex.test(str)) return 'ပုံစံမမှန်ပါ - "အမည်-နံပါတ်" သို့မဟုတ် "အမည် - နံပါတ်" ပုံစံဖြစ်ရမည် (ဥပမာ - ကောင်းတပ်-၁)';
   return null;
 };
 
@@ -390,10 +390,10 @@ const detectWardVillageGroupType = (value) => {
 };
 
 const validateWardVillageGroup = (value) => {
-  if (!value || typeof value !== 'string' || value.trim() === '') return 'Value is required';
+  if (!value || typeof value !== 'string' || value.trim() === '') return 'ရပ်ကွက်/ရွာ/အုပ်စု မဖြစ်မနေလိုအပ်ပါသည်';
   const corrected = autoCorrectWardVillageGroup(value.trim());
   if (detectWardVillageGroupType(corrected) === 'unknown')
-    return '"ရပ်ကွက်" ၊ "ရွာ" သို့မဟုတ် "အုပ်စု" စကားလုံးတစ်ခုခု မဖြစ်မနေ ထည့်သွင်းပေးရမည်။ ဥပမာ — "အောင်မေတ္တာ ရပ်ကွက်" ၊ "အောင်ချမ်းသာ ရွာ" ၊ "အောင်မင်္ဂလာ အုပ်စု" (Must contain "ရပ်ကွက်", "ရွာ", or "အုပ်စု")';
+    return '"ရပ်ကွက်" ၊ "ရွာ" သို့မဟုတ် "အုပ်စု" စကားလုံးတစ်ခုခု မဖြစ်မနေ ထည့်သွင်းပေးရမည်။ ဥပမာ — "အောင်မေတ္တာ ရပ်ကွက်" ၊ "အောင်ချမ်းသာ ရွာ" ၊ "အောင်မင်္ဂလာ အုပ်စု"';
   return null;
 };
 
@@ -421,17 +421,17 @@ const ExcelHeaderMap = {
 };
 
 const MYANMAR_FIELDS = [
-  { key: 'name', label: 'Name' },
-  { key: 'fathers_name', label: "Father's Name" },
-  { key: 'mothers_name', label: "Mother's Name" },
-  { key: 'household_relationship', label: 'Household Relationship' },
-  { key: 'occupation', label: 'Occupation' },
-  { key: 'nationality', label: 'Nationality' },
-  { key: 'religious', label: 'Religious' },
-  { key: 'ward_village_group', label: 'Ward/Village/Group' },
-  { key: 'township', label: 'Township' },
-  { key: 'district', label: 'District' },
-  { key: 'resident_status', label: 'Resident Status' },
+  { key: 'name', label: 'အမည်' },
+  { key: 'fathers_name', label: "အဖေရဲ့အမည်" },
+  { key: 'mothers_name', label: "အမေရဲ့အမည်" },
+  { key: 'household_relationship', label: 'တော်စပ်ပုံ' },
+  { key: 'occupation', label: 'အလုပ်အကိုင်' },
+  { key: 'nationality', label: 'လူမျိုး' },
+  { key: 'religious', label: 'ဘာသာ' },
+  { key: 'ward_village_group', label: 'ရပ်ကွက်/ရွာ/အုပ်စု' },
+  { key: 'township', label: 'မြို့နယ်' },
+  { key: 'district', label: 'ခရိုင်' },
+  { key: 'resident_status', label: 'နေထိုင်ခွင့်အဆင့်' },
 ];
 
 // ============ NOTIFICATION SOUNDS ============
@@ -466,10 +466,10 @@ const playNotificationSound = (isSuccess) => {
         osc.stop(ctx.currentTime + startTimes[i] + durations[i]);
       });
     } else {
-      // Distinct, solid 4-pulse warning alert chime (C4 -> C4 -> A3 -> A3)
-      const notes = [261.63, 261.63, 220.00, 220.00];
-      const startTimes = [0, 0.22, 0.48, 0.74];
-      const durations = [0.18, 0.18, 0.22, 0.45];
+      // Extended warning alert chime - 6 pulses for longer duration (C4 -> C4 -> A3 -> A3 -> G3 -> G3)
+      const notes = [261.63, 261.63, 220.00, 220.00, 196.00, 196.00];
+      const startTimes = [0, 0.30, 0.65, 1.00, 1.40, 1.80];
+      const durations = [0.25, 0.25, 0.30, 0.30, 0.35, 0.80];
 
       notes.forEach((freq, i) => {
         const osc = ctx.createOscillator();
@@ -507,6 +507,8 @@ const ExcelChecker = () => {
     warnings: false,
     valid: false,
   });
+  const [redFlash, setRedFlash] = useState(false);
+  const [greenFlash, setGreenFlash] = useState(false);
   const fileInputRef = useRef(null);
 
   // Toggle section expansion
@@ -612,20 +614,20 @@ const ExcelChecker = () => {
 
       // ── Required field checks (matches CsvUploader processRowsLikeCsv) ──
       const missingFields = [];
-      if (!parsedRow.name || parsedRow.name.trim() === '') missingFields.push('Name');
-      if (!parsedRow.household_no || parsedRow.household_no.trim() === '' || parsedRow.household_no === 'UNKNOWN-1') missingFields.push('Household No.');
-      if (!parsedRow.date_of_birth || parsedRow.date_of_birth.trim() === '') missingFields.push('Date of Birth');
-      if (!parsedRow.ward_village_group || parsedRow.ward_village_group.trim() === '') missingFields.push('Ward/Village/Group');
-      if (!parsedRow.township || parsedRow.township.trim() === '') missingFields.push('Township');
-      if (!parsedRow.district || parsedRow.district.trim() === '') missingFields.push('District');
-      if (!parsedRow.gender || parsedRow.gender.trim() === '') missingFields.push('Gender');
-      if (!parsedRow.household_relationship || parsedRow.household_relationship.trim() === '') missingFields.push('Household Relationship');
+      if (!parsedRow.name || parsedRow.name.trim() === '') missingFields.push('အမည်');
+      if (!parsedRow.household_no || parsedRow.household_no.trim() === '' || parsedRow.household_no === 'UNKNOWN-1') missingFields.push('အိမ်ထောင်စုနံပါတ်');
+      if (!parsedRow.date_of_birth || parsedRow.date_of_birth.trim() === '') missingFields.push('မွေးသက္ကရာဇ်');
+      if (!parsedRow.ward_village_group || parsedRow.ward_village_group.trim() === '') missingFields.push('ရပ်ကွက်/ရွာ/အုပ်စု');
+      if (!parsedRow.township || parsedRow.township.trim() === '') missingFields.push('မြို့နယ်');
+      if (!parsedRow.district || parsedRow.district.trim() === '') missingFields.push('ခရိုင်');
+      if (!parsedRow.gender || parsedRow.gender.trim() === '') missingFields.push('ကျား/မ');
+      if (!parsedRow.household_relationship || parsedRow.household_relationship.trim() === '') missingFields.push('တော်စပ်ပုံ');
 
       const spellingIssues = [];
 
       // ── Household No. validation ──
       const hnError = validateHouseholdNo(parsedRow.household_no);
-      if (hnError) spellingIssues.push({ field: 'Household No.', value: parsedRow.household_no, issue: hnError });
+      if (hnError) spellingIssues.push({ field: 'အိမ်ထောင်စုနံပါတ်', value: parsedRow.household_no, issue: hnError });
 
       // ── Myanmar text quality validation (fieldKey-aware) ──
       for (const field of MYANMAR_FIELDS) {
@@ -635,25 +637,25 @@ const ExcelChecker = () => {
 
       // ── Date of Birth validation ──
       const dobError = validateDateOfBirth(parsedRow.date_of_birth);
-      if (dobError) spellingIssues.push({ field: 'Date of Birth', value: parsedRow.date_of_birth, issue: dobError });
+      if (dobError) spellingIssues.push({ field: 'မွေးသက္ကရာဇ်', value: parsedRow.date_of_birth, issue: dobError });
 
       // ── Ward/Village/Group format ──
       const wardError = validateWardVillageGroup(parsedRow.ward_village_group);
-      if (wardError) spellingIssues.push({ field: 'Ward/Village/Group', value: parsedRow.ward_village_group, issue: wardError });
+      if (wardError) spellingIssues.push({ field: 'ရပ်ကွက်/ရွာ/အုပ်စု', value: parsedRow.ward_village_group, issue: wardError });
 
       // ── District must end with " ခရိုင်" ──
       if (parsedRow.district && !parsedRow.district.endsWith(' ခရိုင်')) {
-        spellingIssues.push({ field: 'District', value: parsedRow.district, issue: '" ခရိုင်" ဟူသောစကားလုံးဖြင့် အဆုံးသတ်ရမည်။ ဥပမာ — "မန်တုံ ခရိုင်"' });
+        spellingIssues.push({ field: 'ခရိုင်', value: parsedRow.district, issue: '" ခရိုင်" ဟူသောစကားလုံးဖြင့် အဆုံးသတ်ရမည်။ ဥပမာ — "မန်တုံ ခရိုင်"' });
       }
 
       // ── Township must end with " မြို့နယ်" ──
       if (parsedRow.township && !parsedRow.township.endsWith(' မြို့နယ်')) {
-        spellingIssues.push({ field: 'Township', value: parsedRow.township, issue: '" မြို့နယ်" ဟူသောစကားလုံးဖြင့် အဆုံးသတ်ရမည်။ ဥပမာ — "နမ္မတူ မြို့နယ်"' });
+        spellingIssues.push({ field: 'မြို့နယ်', value: parsedRow.township, issue: '" မြို့နယ်" ဟူသောစကားလုံးဖြင့် အဆုံးသတ်ရမည်။ ဥပမာ — "နမ္မတူ မြို့နယ်"' });
       }
 
       // ── Ta'ang Land ID No. ──
       const tlidError = validateTaangLandId(parsedRow.taang_land_id_no);
-      if (tlidError) spellingIssues.push({ field: "Ta'ang Land ID No.", value: parsedRow.taang_land_id_no, issue: tlidError });
+      if (tlidError) spellingIssues.push({ field: "တအာင်းပြည်မြေအမှတ်", value: parsedRow.taang_land_id_no, issue: tlidError });
 
       // ── Categorize ──
       if (missingFields.length > 0) {
@@ -712,8 +714,14 @@ const ExcelChecker = () => {
       // Play success chime or error warning sound
       if (results.errors.length === 0) {
         playNotificationSound(true);
+        // Trigger green screen flash for success (1500ms)
+        setGreenFlash(true);
+        setTimeout(() => setGreenFlash(false), 1500);
       } else {
         playNotificationSound(false);
+        // Trigger red screen flash for errors (1500ms)
+        setRedFlash(true);
+        setTimeout(() => setRedFlash(false), 1500);
       }
 
       // Auto-expand sections based on results
@@ -816,15 +824,15 @@ const ExcelChecker = () => {
     
     // Create summary worksheet
     const summaryData = [
-      ['HDC - Ta\'ang Household Database Checker - Error Report'],
-      ['Generated:', new Date().toLocaleString()],
-      ['Original File:', fileName],
+      ['HDC - အိမ်ထောင်စုဒေတာစစ်ဆေးခြင်း - အမှားအယွင်းအစီရင်ခံစာ'],
+      ['ထုတ်ပြန်သည့်ရက်:', new Date().toLocaleString()],
+      ['မူရင်းဖိုင်:', fileName],
       [''],
-      ['SUMMARY'],
-      ['Total Rows Processed:', checkResults.totalRows],
-      ['Errors:', checkResults.errors.length],
-      ['Warnings:', checkResults.warnings.length],
-      ['Valid Rows:', checkResults.validRows.length],
+      ['အနှစ်ချုပ်'],
+      ['စုစုပေါင်းလိုင်းများ:', checkResults.totalRows],
+      ['အမှားများ:', checkResults.errors.length],
+      ['သတိပေးချက်များ:', checkResults.warnings.length],
+      ['မှန်ကန်သောလိုင်းများ:', checkResults.validRows.length],
     ];
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
     
@@ -835,16 +843,16 @@ const ExcelChecker = () => {
     ];
 
     // Add summary sheet to workbook
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'အနှစ်ချုပ်');
 
     // Create errors worksheet if there are errors
     if (checkResults.errors.length > 0) {
       const errorData = [
-        ['ERRORS (Must Fix)'],
-        ['Row Number', 'Name', 'Missing Fields', 'Myanmar Text Issues'],
+        ['အမှားများ (မဖြစ်မနေပြင်ရမည်)'],
+        ['လိုင်းနံပါတ်', 'အမည်', 'မဖြည့်ထားသောအချက်များ', 'မြန်မာစာပြဿနာများ'],
         ...checkResults.errors.map(err => [
           err.rowNumber,
-          err.data.name || 'N/A',
+          err.data.name || '(မဖြည့်ထား)',
           err.missingFields?.join(', ') || '',
           err.spellingIssues?.map(s => `${s.field}: "${s.value}" (${s.issue})`).join('; ') || ''
         ])
@@ -853,23 +861,23 @@ const ExcelChecker = () => {
       
       // Set column widths for errors
       wsErrors['!cols'] = [
-        { wch: 12 }, // Row Number
-        { wch: 30 }, // Name
-        { wch: 25 }, // Missing Fields
-        { wch: 50 }, // Myanmar Text Issues
+        { wch: 12 }, // လိုင်းနံပါတ်
+        { wch: 30 }, // အမည်
+        { wch: 25 }, // မဖြည့်ထားသောအချက်များ
+        { wch: 50 }, // မြန်မာစာပြဿနာများ
       ];
       
-      XLSX.utils.book_append_sheet(wb, wsErrors, 'Errors');
+      XLSX.utils.book_append_sheet(wb, wsErrors, 'အမှားများ');
     }
 
     // Create warnings worksheet if there are warnings
     if (checkResults.warnings.length > 0) {
       const warningData = [
-        ['WARNINGS (Review Recommended)'],
-        ['Row Number', 'Name', 'Myanmar Text Issues'],
+        ['သတိပေးချက်များ (ပြန်လည်စစ်ဆေးရန်)'],
+        ['လိုင်းနံပါတ်', 'အမည်', 'မြန်မာစာပြဿနာများ'],
         ...checkResults.warnings.map(warn => [
           warn.rowNumber,
-          warn.data.name || 'N/A',
+          warn.data.name || '(မဖြည့်ထား)',
           warn.spellingIssues.map(s => `${s.field}: "${s.value}" (${s.issue})`).join('; ')
         ])
       ];
@@ -877,12 +885,12 @@ const ExcelChecker = () => {
       
       // Set column widths for warnings
       wsWarnings['!cols'] = [
-        { wch: 12 }, // Row Number
-        { wch: 30 }, // Name
-        { wch: 50 }, // Myanmar Text Issues
+        { wch: 12 }, // လိုင်းနံပါတ်
+        { wch: 30 }, // အမည်
+        { wch: 50 }, // မြန်မာစာပြဿနာများ
       ];
       
-      XLSX.utils.book_append_sheet(wb, wsWarnings, 'Warnings');
+      XLSX.utils.book_append_sheet(wb, wsWarnings, 'သတိပေးချက်များ');
     }
 
     // Write and download the Excel file
@@ -922,7 +930,49 @@ const ExcelChecker = () => {
   );
 
   return (
-    <div className="bg-white border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
+    <div className="relative bg-white border border-[#E5E7EB]" style={{ borderRadius: '0px' }}>
+      {/* Red Flash Overlay - Error Feedback */}
+      {redFlash && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.25 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-red-600 pointer-events-none z-50 flex items-center justify-center"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.3, type: 'spring', stiffness: 200 }}
+          >
+            <XCircle size={120} className="text-white drop-shadow-lg" strokeWidth={2} />
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Green Flash Overlay - Success Feedback */}
+      {greenFlash && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.2 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-green-500 pointer-events-none z-50 flex items-center justify-center"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.3, type: 'spring', stiffness: 200 }}
+          >
+            <CheckCircle2 size={120} className="text-white drop-shadow-lg" strokeWidth={2} />
+          </motion.div>
+        </motion.div>
+      )}
+
       {/* Header - Systematic Alignment */}
       <div className="flex items-center gap-3 p-4 border-b border-[#E5E7EB]">
         <div className="w-8 h-8 bg-[#F3F4F6] flex items-center justify-center flex-shrink-0">
@@ -1247,6 +1297,117 @@ const ExcelChecker = () => {
                 </div>
               </div>
             </section>
+
+            {/* TPS Standards Section - Full Width with All 23 Standards */}
+            <section className="border border-blue-200 bg-blue-50/20" style={{ borderRadius: '0px' }}>
+              <div className="border-b border-blue-200 p-2.5 sm:p-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <FileText size={14} className="sm:w-4 sm:h-4 text-blue-600" />
+                  </div>
+                  <h3 className="text-[12px] sm:text-[13px] font-semibold text-blue-800">TPS Database စံနှုန်းများ (၂၃ ချက်) / TPS Standards (23 Points)</h3>
+                </div>
+              </div>
+              <div className="p-2.5 sm:p-3 pl-11 sm:pl-14">
+                <p className="text-[10px] sm:text-[11px] text-[#1A1A1A] mb-3 bg-white p-2 border border-blue-100">
+                  <span className="font-medium">TA'ANG POPULATION SYSTEM DATABASE ထဲသို့ အိမ်ထောင်စု စာရင်းများ မရိုက်သွင်းမှီ မဖြစ်မနေ လိုက်နာရမည့် စံနှုန်းများ (Standard Frameworks)</span>
+                </p>
+                <div className="grid grid-cols-1 gap-y-1.5 text-[10px] sm:text-[11px] text-[#1A1A1A]">
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">1.</span>
+                    <span><span className="font-medium">Ta'ang Land ID (တအာင်းပြည် သတ်သေခံ ကဒ်ပြား) များကို English နံပါတ် ဖြင့်သာ ဖြည့်သွင်းရမည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">2.</span>
+                    <span><span className="font-medium">Ta'ang Land ID နံပါတ်ကို English နံပါတ်ဖြင့် ဖြည့်သွင်းရာတွင် ( No - 01001412000123456 ) ပုံစံ အတိုင်း ရိုက်သွင်းရပါမည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">3.</span>
+                    <span><span className="font-medium">No နှင့် - ကြား ၊ - နှင့် English ဂဏန်း ကြားတို့တွင် Space bar (ခေါ်) တစ်ကွက်ကျ ရမည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">4.</span>
+                    <span><span className="font-medium">Ta'ang Land ID (တအာင်းပြည် သတ်သေခံ ကဒ်ပြား) ကို English နံပါတ် သုံးခြင်းမှ လွှဲ၍ အားလုံးကို မြန်မာ လိုသာ ရိုက်နှက်ဖြည့်သွင်းရမည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">5.</span>
+                    <span><span className="font-medium">Ta'ang Land ID ကဒ် မပြုလုပ်ရသေးသော နေရာတွင် ID Card နံပါတ်ကို ဘာမှမထည့်ထားပဲ ၊ အလွတ်ထားရမည်။ (ဥပမာ - မြို့နယ် ခရိုင်ကုဒ်သာ ရိုက်ထည့်ထားမိခြင်း No-01001 ❌)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">6.</span>
+                    <span><span className="font-medium">မြန်မာ လို ရိုက်ရာတွင် (Pyidaungsu Font ) Unicode ဖြစ်သည့် Font များဖြစ်သာ ရိုက်နှိပ်ရမည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">7.</span>
+                    <span><span className="font-medium">Zawgyi code (ဇော်ဂျီဖောင့်) ဖြင့် လုံးဝ လုံးဝ မရိုက်နှိပ်ရ။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">8.</span>
+                    <span><span className="font-medium">Zawgyi code နှင့် Unicode များကိုလဲ ရောနှော ရိုက်နှိပ်ခြင်း မပြုလုပ်ရ။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">9.</span>
+                    <span><span className="font-medium">ပထမဆုံး အကွက်ဖြစ်သည့် Household No. အကွက်တွင် လဲ ရက်ကွက်(သို့)ရွာ နှင့် အိမ်ထောင်စု အမှတ်စဉ် (ဥပမာ ကောင်းတပ်-၁ ) ရိုက်နှိပ်ရာတွင် ကောင်းတပ် နှင့် - ကြား ၊ - နှင့် ၁ ကြားတွင် Space bar လုံးဝမခြား ရပါ။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">10.</span>
+                    <span><span className="font-medium">အိမ်ထောင်စု နှင့် အမှတ်စဉ်ကို Space bar ခြားပြီး ရိုက်နှိပ်ပြီးသော အဖွဲ့များမှ စာရင်းများလဲ အသုံးပြုလို့ရပါသည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">11.</span>
+                    <span><span className="font-medium">မွေးသက္ကရာဇ် (Date of birth) နှင့် ဖြည့်သွင်းရက်စွဲ (Submission Date) တို့၏ stranded Format (စံနှုန်း) မှာ ရက် ၊ လ ၊ ခုနှစ် ဖြစ်ပါသည်။ ( ၁.၃.၁၉၉၉ )</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">12.</span>
+                    <span><span className="font-medium">မွေးသက္ကရာဇ် ရက်၊လ မသိသူများ ၊ မရှိသူများ ကို ခန့်မှန်းပြီး မဖြစ်မနေ ထည့်ပေးပါရန်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">13.</span>
+                    <span><span className="font-medium">မွေးသက္ကရာဇ် (Date of birth) ရိုက်ရာတွင် တစ်ခုနှင့် တစ်ခု ကြားကို( . )သာ သုံး ရပါမည် (ဥပမာ - ၁.၃.၁၉၉၉) ၊ (-) နှင့် ( ,) (/) အခြားသော သင်္ကေတ များ လုံးဝမသုံးရ။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">14.</span>
+                    <span><span className="font-medium">အခြားသော အကွက်များဖြစ်သည့် Nationality ၊ Resident ၊ Religious အကွက်များကို အတိုခေါက်ဖြင့် လုံးဝ မဖြည့်သွင်းရ (ဥပမာ - တအ × (တအာင်း ✓) , ကရ × (ကရင် ✓ ) , ခရယ × (ခရစ်ယာန် ✓ ) ။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">15.</span>
+                    <span><span className="font-medium">ကပြား လူမျိုး ဖြစ်ပါက သင်္ကေတကို + သုံးရမည်။ (ဥပမာ တအာင်း+ရှမ်း ) အခြား သင်္ကေတ များ (- / : =) လုံးဝ လုံးဝ မသုံးရ</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">16.</span>
+                    <span><span className="font-medium">Ward (ရပ်ကွက်) / Village (ရွာ) / Group (အုပ်စု) ဆိုသည့်အတိုင်း အရှေ့ မှ အနောက် အစဉ်လိုက် သက်ဆိုင်ရာ ခေါင်စဉ်အတိုင်း ဖြည့်သွင်းပေးရပါမည်။(ဥပမာ - ကောင်းသာ ရွာ , အေးချမ်းသာယာ အုပ်စု )</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">17.</span>
+                    <span><span className="font-medium">ရွာ နဲ့ အုပ်စု ရေးမည်ဆိုပါက ရွာ နှင့် အုပ်စု ကြားတွင် ကော်မာ (,) ခြား ပေးရမည် ။ (အခြား သင်္ကေတ များမသုံးရ)</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">18.</span>
+                    <span><span className="font-medium">ရက်ကွက် ၊ ရွာ နှင့် အုပ်စု အကွက်များဖြည့်သွင်းရာတွင် ( အောင်မေတ္တာ ရပ်ကွက် ၊ အောင်ချမ်းသာ ရွာ ၊ အောင်မင်္ဂလာ အုပ်စု ) ဆိုသော နောက်တွင် ရပ်ကွက် ၊ ရွာ နှင့် အုပ်စု မဖြစ်မနေ ထည့်ပေးရမည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">19.</span>
+                    <span><span className="font-medium">ရွာ ကို ကျေးရွာ ဟု လုံးဝ မရေးရ ၊ အုပ်စု ကို ကျေးရွာအုပ်စု၊ ရွာအုပ်စု ဟု လုံးဝ မရေးရ ၊ ရပ်ကွက် ကို ရပ်ကွပ်/ရက်ကွက် ဟု စာလုံးပေါင်း လုံးဝ မမှားရ။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">20.</span>
+                    <span><span className="font-medium">သက်မှတ်ထားသော ရွာ ၊ ရပ်ကွက် ၊ အုပ်စု စသည့် အသုံးအနှုန်းသာ သုံးရပါမည်။ (မိမိဆန္ဒအလျှောက် အခြားအသုံးအနှုန်းများအား လုံးဝ အသုံးမပြုရ )</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">21.</span>
+                    <span><span className="font-medium">အောင်မေတ္တာ ရပ်ကွက် ၊ အောင်ချမ်းသာ ရွာ ၊ အောင်မင်္ဂလာ အုပ်စု စသည်ဖြင့် အမည် နှင့် (ရပ်ကွက် ၊ ရွာ ၊ အုပ်စု ) ကြားတွင် Space bar (ခေါ်) တစ်ကွက် ခြားပေးရမည်။</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">22.</span>
+                    <span><span className="font-medium">ရပ်ကွက် ဆိုပါက ( ဥပမာ အောင်မင်္ဂလာ ရပ်ကွက် ) ဟု သာ ရေးရမည်။ ရွာ နှင့် အုပ်စု ဆိုပါက ရွာကို အရင်ရေးရမည် (ဥပမာ ကုန်းဆာ ရွာ , ကုန်းဆာ အုပ်စု )</span></span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-blue-600 font-bold w-5 flex-shrink-0">23.</span>
+                    <span><span className="font-medium">မြို့နယ် နှင့် ခရိုင် နောက်တွင်လဲ နမ္မတူ မြို့နယ် ၊ မန်တုံ ခရိုင် ( မြို့နယ် နှင့် ခရိုင်) ကို မဖြစ်မနေ ထည့်ပေးရမည်။</span></span>
+                  </li>
+                </div>
+              </div>
+            </section>
           </>
         )}
 
@@ -1346,11 +1507,11 @@ const ExcelChecker = () => {
                               transition={{ duration: 0.35, delay: 0.5 }}
                               className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-[#BBF7D0]"
                             >
-                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">{checkResults.totalRows} rows verified</span>
+                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">{checkResults.totalRows} လိုင်း စစ်ဆေးပြီး</span>
                               <span className="text-[#BBF7D0] select-none">|</span>
-                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 errors</span>
+                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">အမှား 0 ခု</span>
                               <span className="text-[#BBF7D0] select-none">|</span>
-                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">0 warnings</span>
+                              <span className="text-[12px] text-[#166534] font-medium tabular-nums">သတိပေးချက် 0 ခု</span>
                             </motion.div>
                           </motion.div>
                         </div>
@@ -1436,17 +1597,17 @@ const ExcelChecker = () => {
                     <table className="w-full text-left border-collapse min-w-[600px]">
                       <thead className="bg-red-50 border-b border-red-100 sticky top-0 z-10">
                         <tr>
-                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700 w-16 sm:w-20">Excel Row</th>
-                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Name</th>
-                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Missing Fields</th>
-                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">Myanmar Issues</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700 w-16 sm:w-20">Excel လိုင်း</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">အမည်</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">မဖြည့်ထားသောအချက်များ</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-red-700">မြန်မာစာပြဿနာများ</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#E5E7EB]">
                         {checkResults.errors.map((err, idx) => (
                           <tr key={idx} className="hover:bg-red-50/30">
                             <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-bold text-[#1A1A1A]">#{err.rowNumber}</td>
-                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{err.data.name || 'N/A'}</td>
+                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{err.data.name || '(မဖြည့်ထား)'}</td>
                             <td className="px-2 sm:px-3 py-2">
                               <div className="flex flex-wrap gap-1">
                                 {err.missingFields?.map((field, i) => (
@@ -1492,16 +1653,16 @@ const ExcelChecker = () => {
                     <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead className="bg-orange-50 border-b border-orange-100 sticky top-0 z-10">
                         <tr>
-                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700 w-16 sm:w-20">Excel Row</th>
-                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">Name</th>
-                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">Myanmar Text Issues</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700 w-16 sm:w-20">Excel လိုင်း</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">အမည်</th>
+                          <th className="px-2 sm:px-3 py-2 text-[10px] sm:text-[11px] font-semibold text-orange-700">မြန်မာစာပြဿနာများ</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#E5E7EB]">
                         {checkResults.warnings.map((warn, idx) => (
                           <tr key={idx} className="hover:bg-orange-50/30">
                             <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] font-bold text-[#1A1A1A]">#{warn.rowNumber}</td>
-                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{warn.data.name || 'N/A'}</td>
+                            <td className="px-2 sm:px-3 py-2 text-[11px] sm:text-[12px] text-[#1A1A1A]">{warn.data.name || '(မဖြည့်ထား)'}</td>
                             <td className="px-2 sm:px-3 py-2">
                               {warn.spellingIssues.map((issue, i) => (
                                 <div key={i} className="text-[9px] sm:text-[10px] text-orange-700 mb-1">
@@ -1537,10 +1698,10 @@ const ExcelChecker = () => {
                     <table className="w-full text-left border-collapse text-[11px] sm:text-[12px] min-w-[400px]">
                       <thead className="bg-green-50 border-b border-green-100 sticky top-0">
                         <tr>
-                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Household</th>
-                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Name</th>
-                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Gender</th>
-                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">Location</th>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">အိမ်ထောင်စုနံပါတ်</th>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">အမည်</th>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">ကျား/မ</th>
+                          <th className="px-1.5 sm:px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-green-700">တည်နေရာ</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#E5E7EB]">
@@ -1555,7 +1716,7 @@ const ExcelChecker = () => {
                         {checkResults.validRows.length > 20 && (
                           <tr>
                             <td colSpan={4} className="px-1.5 sm:px-2 py-2 text-center text-[10px] sm:text-[11px] text-[#737373]">
-                              ... and {checkResults.validRows.length - 20} more rows
+                              ... နှင့် {checkResults.validRows.length - 20} စာကြောင်း ထပ်ရှိသည်
                             </td>
                           </tr>
                         )}
