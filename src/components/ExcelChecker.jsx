@@ -357,6 +357,11 @@ const validateHouseholdNo = (value) => {
   const str = value.trim();
   if (str === 'UNKNOWN' || str === 'UNKNOWN-1') return 'အိမ်ထောင်စုနံပါတ်သည် "UNKNOWN" ဖြစ်လို့မရပါ';
   if (/[/.,၊]/.test(str)) return 'ခွဲပြားခြင်း အမှတ်များဖြစ်သော /, ., နှင့် , များကို မသုံးရပါ - ဟိုင်ဖင် (-) သာသုံးပါ';
+  
+  if (/ရပ်ကွက်|ရွာ|အုပ်စု/.test(str)) {
+    return 'ရပ်ကွက်၊ ရွာ၊ အုပ်စု ဟူသော စကားလုံးများ မပါဝင်ရပါ (ဥပမာ - "ဟိုခိုရပ်ကွက်-၂" အစား "ဟိုခို-၂" ဟုသာ ရေးရမည်)';
+  }
+
   const hhNoRegex = /^[a-zA-Z\u1000-\u109F\s]+(?:\s*[-–—]\s*)[0-9၀-၉]+$/;
   if (!hhNoRegex.test(str)) return 'ပုံစံမမှန်ပါ - "အမည်-နံပါတ်" သို့မဟုတ် "အမည် - နံပါတ်" ပုံစံဖြစ်ရမည် (ဥပမာ - ကောင်းတပ်-၁)';
   return null;
@@ -624,10 +629,14 @@ const ExcelChecker = () => {
       if (!parsedRow.household_relationship || parsedRow.household_relationship.trim() === '') missingFields.push('တော်စပ်ပုံ');
 
       const spellingIssues = [];
+      let hasCriticalError = false;
 
       // ── Household No. validation ──
       const hnError = validateHouseholdNo(parsedRow.household_no);
-      if (hnError) spellingIssues.push({ field: 'အိမ်ထောင်စုနံပါတ်', value: parsedRow.household_no, issue: hnError });
+      if (hnError) {
+        spellingIssues.push({ field: 'အိမ်ထောင်စုနံပါတ်', value: parsedRow.household_no, issue: hnError });
+        hasCriticalError = true;
+      }
 
       // ── Myanmar text quality validation (fieldKey-aware) ──
       for (const field of MYANMAR_FIELDS) {
@@ -658,7 +667,7 @@ const ExcelChecker = () => {
       if (tlidError) spellingIssues.push({ field: "တအာင်းပြည်မြေအမှတ်", value: parsedRow.taang_land_id_no, issue: tlidError });
 
       // ── Categorize ──
-      if (missingFields.length > 0) {
+      if (missingFields.length > 0 || hasCriticalError) {
         errors.push({ rowNumber: rowNum, data: parsedRow, missingFields, spellingIssues, severity: 'error' });
       } else if (spellingIssues.length > 0) {
         warnings.push({ rowNumber: rowNum, data: parsedRow, spellingIssues, severity: 'warning' });
