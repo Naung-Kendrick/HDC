@@ -712,7 +712,7 @@ const ExcelChecker = () => {
       setCheckResults(results);
 
       // Play success chime or error warning sound
-      if (results.errors.length === 0) {
+      if (results.errors.length === 0 && results.warnings.length === 0) {
         playNotificationSound(true);
         // Trigger green screen flash for success (1500ms)
         setGreenFlash(true);
@@ -995,9 +995,11 @@ const ExcelChecker = () => {
             onDrop={handleDrop}
             whileHover={
               checkResults
-                ? checkResults.errors.length === 0
+                ? checkResults.errors.length === 0 && checkResults.warnings.length === 0
                   ? { scale: 1.002, borderColor: '#16A34A', backgroundColor: '#F0FDF4', boxShadow: '0 8px 24px -5px rgba(22, 163, 74, 0.08)' }
-                  : { scale: 1.002, borderColor: '#DC2626', backgroundColor: '#FEF2F2', boxShadow: '0 8px 24px -5px rgba(220, 38, 38, 0.08)' }
+                  : checkResults.errors.length > 0
+                    ? { scale: 1.002, borderColor: '#DC2626', backgroundColor: '#FEF2F2', boxShadow: '0 8px 24px -5px rgba(220, 38, 38, 0.08)' }
+                    : { scale: 1.002, borderColor: '#F97316', backgroundColor: '#FFFBEB', boxShadow: '0 8px 24px -5px rgba(249, 115, 22, 0.08)' }
                 : { scale: 1.002, borderColor: '#2563EB', backgroundColor: '#EFF6FF', boxShadow: '0 8px 24px -5px rgba(37, 99, 235, 0.08)' }
             }
             whileTap={{ scale: 0.995 }}
@@ -1005,12 +1007,12 @@ const ExcelChecker = () => {
               borderColor: isDragging 
                 ? '#2563EB' 
                 : checkResults
-                  ? checkResults.errors.length === 0 ? '#16A34A' : '#DC2626'
+                  ? checkResults.errors.length === 0 && checkResults.warnings.length === 0 ? '#16A34A' : checkResults.errors.length > 0 ? '#DC2626' : '#F97316'
                   : '#E5E7EB',
               backgroundColor: isDragging
                 ? '#EFF6FF'
                 : checkResults
-                  ? checkResults.errors.length === 0 ? '#F0FDF4' : '#FEF2F2'
+                  ? checkResults.errors.length === 0 && checkResults.warnings.length === 0 ? '#F0FDF4' : checkResults.errors.length > 0 ? '#FEF2F2' : '#FFFBEB'
                   : '#FFFFFF',
             }}
             transition={{ duration: 0.25, ease: "easeOut" }}
@@ -1037,10 +1039,12 @@ const ExcelChecker = () => {
                 className="mb-2 sm:mb-3"
               >
                 {checkResults ? (
-                  checkResults.errors.length === 0 ? (
+                  checkResults.errors.length === 0 && checkResults.warnings.length === 0 ? (
                     <CheckCircle2 size={32} className="sm:w-10 sm:h-10 text-[#16A34A]" />
-                  ) : (
+                  ) : checkResults.errors.length > 0 ? (
                     <XCircle size={32} className="sm:w-10 sm:h-10 text-[#DC2626]" />
+                  ) : (
+                    <AlertTriangle size={32} className="sm:w-10 sm:h-10 text-[#F97316]" />
                   )
                 ) : (
                   <FileSpreadsheet size={32} className={`sm:w-10 sm:h-10 transition-colors duration-300 ${
@@ -1050,15 +1054,20 @@ const ExcelChecker = () => {
               </motion.div>
 
               {checkResults ? (
-                checkResults.errors.length === 0 ? (
+                checkResults.errors.length === 0 && checkResults.warnings.length === 0 ? (
                   <>
                     <p className="text-[13px] sm:text-[14px] font-bold text-[#15803D]">ဖိုင်စစ်ဆေးပြီးပါပြီ - ဒေတာများအားလုံး မှန်ကန်ပါသည် (Perfect - All Checks Passed)</p>
                     <p className="text-[10px] sm:text-[11px] text-[#166534] mt-1">အမှားအယွင်းမရှိပါ။ Click သို့မဟုတ် Drag ပြုလုပ်ပြီး အခြားဖိုင်တင်သွင်းနိုင်ပါသည် (All clean! Click or drag to upload a different file)</p>
                   </>
-                ) : (
+                ) : checkResults.errors.length > 0 ? (
                   <>
                     <p className="text-[13px] sm:text-[14px] font-bold text-[#B91C1C]">ပြင်ဆင်ရန် အမှားများ တွေ့ရှိရပါသည် (Errors Found - Fix Required)</p>
                     <p className="text-[10px] sm:text-[11px] text-[#991B1B] mt-1">စစ်ဆေးချက်ကို အောက်တွင် ကြည့်ရှုပါ။ Click သို့မဟုတ် Drag ပြုလုပ်ပြီး အခြားဖိုင်ထပ်မံတင်သွင်းနိုင်ပါသည် (See errors below)</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[13px] sm:text-[14px] font-bold text-[#C2410C]">သတိပေးချက်များ တွေ့ရှိရပါသည် (Warnings Found - Review Suggested)</p>
+                    <p className="text-[10px] sm:text-[11px] text-[#9A3412] mt-1">စစ်ဆေးရန် သတိပေးချက်များကို အောက်တွင် ကြည့်ရှုပါ။ Click သို့မဟုတ် Drag ပြုလုပ်ပြီး အခြားဖိုင်ထပ်မံတင်သွင်းနိုင်ပါသည် (See warnings below)</p>
                   </>
                 )
               ) : (
