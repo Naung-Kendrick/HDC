@@ -246,37 +246,85 @@ const validateMyanmarText = (text, fieldKey = null) => {
   const hasMyanmarChars = /[\u1000-\u109F]/.test(str);
   if (!hasMyanmarChars) return null;
 
-  // Name fields: lightweight validation only
-  if (fieldKey === 'name' || fieldKey === 'fathers_name' || fieldKey === 'mothers_name') {
-    if (/[\u1000-\u109F]/.test(str) && /[a-zA-Z]/.test(str)) return 'Latin characters mixed with Myanmar';
-    const syllablesCheck = segmentSyllables(str);
-    for (const syl of syllablesCheck) {
-      const eCount = (syl.match(/\u1031/g) || []).length;
-      if (eCount > 1) return `Syllable "${syl}" has duplicate ေ (${eCount} times) — check your input`;
-    }
-    return null;
+  const issues = [];
+
+  // 1. Duplicate / Repeated Diacritics (Covers Categories 1, 2, 4, 5)
+  // Any consecutive repetition of a diacritic mark [\u102B-\u103E] is a duplication error
+  if (/([\u102B-\u103E])\1/.test(str)) {
+    const match = str.match(/([\u102B-\u103E])\1/);
+    const dupChar = match[1];
+    let customMsg = `သရ/အသံပြောင်းသင်္ကေတ "${dupChar}" အား နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Duplicate diacritic/vowel sign)`;
+    if (dupChar === 'း') customMsg = `ဝစ္စနှစ်လုံးပေါက် (း) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Visarga - e.g. "လားး")`;
+    if (dupChar === 'ံ') customMsg = `သေးသေးတင် (ံ) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Anusvara - e.g. "ကံံ")`;
+    if (dupChar === '့') customMsg = `အောက်ကမြစ် (့) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Dot-Below - e.g. "က့့")`;
+    if (dupChar === 'ါ' || dupChar === 'ာ') customMsg = `ရေးချ (${dupChar}) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double -aa vowel - e.g. "လာာ")`;
+    if (dupChar === 'ိ') customMsg = `လုံးကြီးတင် (ိ) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Lon-gyi-tin)`;
+    if (dupChar === 'ီ') customMsg = `ဆံခတ် (ီ) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double San-khat - e.g. "ဒီီ")`;
+    if (dupChar === 'ု' || dupChar === 'ူ') customMsg = `တစ်ချောင်းငင်/နှစ်ချောင်းငင် (${dupChar}) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Lower Vowel - e.g. "သူူ")`;
+    if (dupChar === '်') customMsg = `အသတ် (်) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Asat - e.g. "မင်း်")`;
+    if (dupChar === 'ျ') customMsg = `ယပင့် (ျ) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Ya-Pin - e.g. "ကျျ")`;
+    if (dupChar === 'ြ') customMsg = `ရရစ် (ြ) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Ya-Yit - e.g. "ကြြ")`;
+    if (dupChar === 'ွ') customMsg = `ဝဆွဲ (ွ) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Wa-Sway - e.g. "ကွွ")`;
+    if (dupChar === 'ှ') customMsg = `ဟထိုး (ှ) နှစ်ကြိမ်ဆက်တိုက် ထပ်ရိုက်မိနေပါသည် (Double Ha-Hto - e.g. "လှှ")`;
+    issues.push(customMsg);
   }
 
-  const issues = [];
-  if (/([\u103B-\u103E])\1/.test(str)) issues.push('Duplicate medial/modifier');
-  if (/([\u102B-\u1032])\1/.test(str)) issues.push('Duplicate vowel sign');
-  if (/(\u1039)\1/.test(str)) issues.push('Duplicate virama');
-  if (/(\u1037)\1+/.test(str)) issues.push('Repeated dot below (့)');
-  if (/(\u1038)\1+/.test(str)) issues.push('Repeated visarga (း)');
-  if (/\u1031[^\u1000-\u102A\u1040-\u1049]*\u1031/.test(str)) issues.push('Multiple ေ in sequence');
+  // 2. Vowel Stacking Conflicts (သရအချင်းချင်း ငြိစွန်းခြင်း) [Category 3]
+  // Upper Vowel Clash (e.g., Lon-gyi-tin ိ and San-khat ီ on same syllable)
+  if (/[\u102D\u102E\u1036][\u102D\u102E\u1036]/.test(str)) {
+    const match = str.match(/([\u102D\u102E\u1036])([\u102D\u102E\u1036])/);
+    if (match && match[1] !== match[2]) {
+      issues.push(`အပေါ်တင်သရများ ထပ်ဆင့်ငြိစွန်းနေပါသည် "${match[1]}" နှင့် "${match[2]}" (Upper Vowel Clash - e.g. "နီိ")`);
+    }
+  }
+  // Lower Vowel Clash (e.g., Ta-chaung-ngin ု and Hna-chaung-ngin ူ on same syllable)
+  if (/[\u102F\u1030][\u102F\u1030]/.test(str)) {
+    const match = str.match(/([\u102F\u1030])([\u102F\u1030])/);
+    if (match && match[1] !== match[2]) {
+      issues.push(`အောက်ဆွဲသရများ ထပ်ဆင့်ငြိစွန်းနေပါသည် "${match[1]}" နှင့် "${match[2]}" (Lower Vowel Clash - e.g. "ထူု")`);
+    }
+  }
+
+  // 3. Independent Vowel Over-Marking [Category 6]
+  // Adding dependent vowels/asat/medials onto independent vowels (e.g. ဦီ, ဩော်)
+  if (/[\u1023\u1024\u1025\u1027\u1028\u1029\u102A][\u102B-\u103E]/.test(str)) {
+    const match = str.match(/([\u1023\u1024\u1025\u1027\u1028\u1029\u102A])([\u102B-\u103E])/);
+    issues.push(`အသံပြည့်သရ "${match[1]}" ပေါ်တွင် နောက်ထပ် သရသင်္ကေတ "${match[2]}" ထပ်ဆင့်မွမ်းမံခြင်းမှာ အမှားဖြစ်ပါသည် (Redundant independent vowel marking)`);
+  }
+  if (/ဦ[\u102B-\u1037\u1039-\u103E]/.test(str)) {
+    const match = str.match(/ဦ([\u102B-\u1037\u1039-\u103E])/);
+    issues.push(`အသံပြည့်သရ "ဦ" ပေါ်တွင် နောက်ထပ် သရသင်္ကေတ "${match[1]}" ထပ်ဆင့်မွမ်းမံခြင်းမှာ အမှားဖြစ်ပါသည် (Redundant independent vowel marking)`);
+  }
+
+  // 4. Kinzi Encoding Conflicts [Category 7]
+  // Kinzi (င်္) followed by duplicate base consonant (e.g., မင်္ဂဂါ)
+  if (/\u1004\u103A\u1039([\u1000-\u1021])\1/.test(str)) {
+    const match = str.match(/\u1004\u103A\u1039([\u1000-\u1021])\1/);
+    issues.push(`ကင်းစီး (င်္) အောက်တွင် ဗျည်း "${match[1]}" နှစ်ကြိမ်ထပ်နေပါသည် (Kinzi duplication - e.g. "မင်္ဂဂါ")`);
+  }
+
+  // 5. Existing orthography, virama, sequence checks
+  if (/(\u1039)\1/.test(str)) issues.push('မမှန်ကန်သော ပေါင်းစပ်မှု - Stacking mark (္) ဆင့်ထပ်နေပါသည် (Duplicate virama)');
+  if (/\u1031[^\u1000-\u102A\u1040-\u1049]*\u1031/.test(str)) issues.push('ေသင်္ကေတ တစ်လုံးထက်ပို၍ ရှေ့ဆင့်နောက်ဆင့် ဖြစ်နေပါသည် (Multiple ေ in sequence)');
+  
   const syllablesForECheck = segmentSyllables(str);
   for (const syl of syllablesForECheck) {
     const eCount = (syl.match(/\u1031/g) || []).length;
-    if (eCount > 1) { issues.push(`Syllable "${syl}" has duplicate ေ (${eCount} times)`); break; }
+    if (eCount > 1) { 
+      issues.push(`သတ်ပုံမှားယွင်းနေပါသည် - စာလုံး "${syl}" တွင် ေ တစ်လုံးထက်ပိုနေပါသည်`); 
+      break; 
+    }
   }
-  if (/\u1039[^\u1000-\u102A]/.test(str)) issues.push('Invalid stacking (္ not followed by consonant)');
-  if (/\u1039$/.test(str)) issues.push('Stacking mark at end of text');
+  if (/\u1039[^\u1000-\u102A]/.test(str)) issues.push('ဗျည်းဆင့်သင်္ကေတ (္) ပြီးနောက် ဗျည်းအက္ခရာ မရှိပါ (Invalid stacking)');
+  if (/\u1039$/.test(str)) issues.push('စာသားအဆုံးတွင် ဗျည်းဆင့်သင်္ကေတ (္) မရှိရပါ (Stacking mark at end)');
 
-  // Syllable-level orthography
+  // Syllable-level orthography ordering checks
   const syllables = segmentSyllables(str);
   for (const syl of syllables) {
     const orderingError = validateDiacriticOrdering(syl);
-    if (orderingError) { issues.push(`Orthography Error in "${syl}": ${orderingError}`); }
+    if (orderingError) { 
+      issues.push(`အစီအစဉ်လွဲမှားမှု "${syl}": ${orderingError}`); 
+    }
   }
 
   // Dictionary & spelling suggestions
@@ -297,7 +345,10 @@ const validateMyanmarText = (text, fieldKey = null) => {
   // Mixed encoding
   const myanmarSegments = str.split(/[\s,\-\/\.\(\)0-9၀-၉]+/);
   for (const seg of myanmarSegments) {
-    if (/[\u1000-\u109F]/.test(seg) && /[a-zA-Z]/.test(seg)) { issues.push('Latin characters mixed with Myanmar'); break; }
+    if (/[\u1000-\u109F]/.test(seg) && /[a-zA-Z]/.test(seg)) { 
+      issues.push('အင်္ဂလိပ်စာလုံးနှင့် မြန်မာစာလုံး ရောနှောမသုံးရပါ (Latin characters mixed with Myanmar)'); 
+      break; 
+    }
   }
 
   return issues.length > 0 ? issues.join('; ') : null;
@@ -438,6 +489,26 @@ const MYANMAR_FIELDS = [
   { key: 'district', label: 'ခရိုင်' },
   { key: 'resident_status', label: 'နေထိုင်ခွင့်အဆင့်' },
 ];
+
+const FieldLabels = {
+  household_no: 'အိမ်ထောင်စုနံပါတ်',
+  name: 'အမည်',
+  date_of_birth: 'မွေးသက္ကရာဇ်',
+  gender: 'ကျား/မ',
+  fathers_name: 'အဖေရဲ့အမည်',
+  mothers_name: 'အမေရဲ့အမည်',
+  household_relationship: 'တော်စပ်ပုံ',
+  occupation: 'အလုပ်အကိုင်',
+  previous_id_no: 'ယခင်အမှတ်စဉ်',
+  nationality: 'လူမျိုး',
+  resident_status: 'နေထိုင်ခွင့်အဆင့်',
+  religious: 'ဘာသာ',
+  house_no: 'အိမ်နံပါတ်',
+  ward_village_group: 'ရပ်ကွက်/ရွာ/အုပ်စု',
+  township: 'မြို့နယ်',
+  district: 'ခရိုင်',
+  submission_date: 'ဖြည့်သွင်းရက်စွဲ',
+};
 
 // ============ NOTIFICATION SOUNDS ============
 const playNotificationSound = (isSuccess) => {
@@ -631,6 +702,24 @@ const ExcelChecker = () => {
       const spellingIssues = [];
       let hasCriticalError = false;
 
+      // ── English characters and numbers validation (Only Ta'ang Land ID No. is allowed to have them) ──
+      Object.keys(rowData).forEach(key => {
+        if (key !== 'taang_land_id_no') {
+          const rawVal = rowData[key];
+          if (rawVal && /[a-zA-Z0-9]/.test(rawVal)) {
+            const label = FieldLabels[key] || key;
+            let customMsg = `အင်္ဂလိပ်စာလုံး သို့မဟုတ် အင်္ဂလိပ်ဂဏန်းများ လုံးဝမသုံးရပါ - မြန်မာစာနှင့် မြန်မာဂဏန်းများကိုသာ သုံးရပါမည်။`;
+            if (key === 'date_of_birth') {
+              customMsg = `မွေးသက္ကရာဇ်တွင် အင်္ဂလိပ်ဂဏန်း သို့မဟုတ် အင်္ဂလိပ်စာလုံးများ လုံးဝမသုံးရပါ - မြန်မာဂဏန်းများကိုသာ သုံးရပါမည် (ဥပမာ - ၁၂.၃.၁၉၉၉)`;
+            } else if (key === 'submission_date') {
+              customMsg = `ဖြည့်သွင်းရက်စွဲတွင် အင်္ဂလိပ်ဂဏန်း သို့မဟုတ် အင်္ဂလိပ်စာလုံးများ လုံးဝမသုံးရပါ - မြန်မာဂဏန်းများကိုသာ သုံးရပါမည် (ဥပမာ - ၁၀.၁၀.၂၀၂၆)`;
+            }
+            spellingIssues.push({ field: label, value: rawVal, issue: customMsg });
+            hasCriticalError = true;
+          }
+        }
+      });
+
       // ── Household No. validation ──
       const hnError = validateHouseholdNo(parsedRow.household_no);
       if (hnError) {
@@ -667,11 +756,8 @@ const ExcelChecker = () => {
       if (tlidError) spellingIssues.push({ field: "တအာင်းပြည်မြေအမှတ်", value: parsedRow.taang_land_id_no, issue: tlidError });
 
       // ── Categorize ──
-      if (missingFields.length > 0 || hasCriticalError) {
+      if (missingFields.length > 0 || hasCriticalError || spellingIssues.length > 0) {
         errors.push({ rowNumber: rowNum, data: parsedRow, missingFields, spellingIssues, severity: 'error' });
-      } else if (spellingIssues.length > 0) {
-        warnings.push({ rowNumber: rowNum, data: parsedRow, spellingIssues, severity: 'warning' });
-        validRows.push(parsedRow);
       } else {
         validRows.push(parsedRow);
       }
